@@ -1,0 +1,32 @@
+version 0:95: $full : $large;
+
+function &get_global_id(arg_u32 %ret_val) (arg_u32 %arg_val0);
+function &abort() ();
+kernel &run(
+   kernarg_u64 %_out, 
+   kernarg_u64 %_in
+){
+   ld_kernarg_u64 $d0, [%_out];
+   ld_kernarg_u64 $d1, [%_in];
+   
+   @block0:
+   workitemabsid_u32 $s2, 0;
+   cvt_s64_s32 $d2, $s2;
+   // java reference size (compressed references) are 4 bytes each
+   mad_u64 $d3, $d2, 4, $d1;
+   ld_global_u32 $s3, [$d3];      //32-bit pointer to object
+   cvt_u64_u32   $d3, $s3;        //64-bit pointer to object
+   // by experiment we found out the offsets of the float fields in the Point object
+   add_u64  $d3, $d3, 12;         // offset to data
+   ld_global_f32 $s0, [$d3+0];    // x
+   ld_global_f32 $s1, [$d3+4];    // y
+   ld_global_f32 $s2, [$d3+8];    // z
+   mul_f32 $s0, $s0, $s0;	   // x*x
+   fma_f32 $s0, $s1, $s1, $s0; // + y*y     
+   fma_f32 $s0, $s2, $s2, $s0; // + z*z
+   sqrt_f32 $s0, $s0;
+   mad_u64 $d4, $d2, 4, $d0;
+   st_global_f32 $s0, [$d4];
+   ret;
+   
+};

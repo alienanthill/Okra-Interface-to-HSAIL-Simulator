@@ -1,0 +1,28 @@
+version 0:95: $full : $large;
+
+kernel &run(
+   kernarg_u64 %_out, 
+   kernarg_u64 %_in
+){
+   ld_kernarg_u64 $d0, [%_out];
+   ld_kernarg_u64 $d1, [%_in];
+   
+   @block0:
+   workitemabsid_u32 $s2, 0;
+   cvt_s64_s32 $d2, $s2;
+   // pointers are 8 bytes each
+   mad_u64 $d3, $d2, 8, $d1;
+   ld_global_u64 $d3, [$d3];   //pointer
+   // add_u64  $d3, $d3, 8;       // offset to data
+   ld_global_f32 $s0, [$d3+0]; // x
+   ld_global_f32 $s1, [$d3+4]; // y
+   ld_global_f32 $s2, [$d3+8]; // z
+   mul_f32 $s0, $s0, $s0;	   // x*x
+   fma_f32 $s0, $s1, $s1, $s0; // + y*y     
+   fma_f32 $s0, $s2, $s2, $s0; // + z*z
+   sqrt_f32 $s0, $s0;
+   mad_u64 $d4, $d2, 4, $d0;
+   st_global_f32 $s0, [$d4];
+   ret;
+   
+};

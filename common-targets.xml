@@ -1,0 +1,441 @@
+<project name="okra.common.targets" basedir=".">
+   <target name="init">
+
+      <available property="msvc.64.10.0.exists" file="c:/Program Files (x86)/Microsoft Visual Studio 10.0\vc\bin\amd64" type="dir"/>
+      <condition property="msvc.dir" value="c:/Program Files (x86)/Microsoft Visual Studio 10.0">
+         <and>
+            <not>
+               <or>
+                  <os arch="x86" />
+                  <os arch="i386" />
+               </or>
+            </not>
+            <os family="windows" />
+            <isset property="msvc.64.10.0.exists" />
+            <not>
+               <isset property="msvc.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.32.10.0.exists" file="c:/Program Files/Microsoft Visual Studio 10.0\vc\bin" type="dir"/>
+      <condition property="msvc.dir" value="c:/Program Files/Microsoft Visual Studio 10.0">
+         <and>
+            <or>
+               <os arch="x86" />
+               <os arch="i386" />
+            </or>
+            <os family="windows" />
+            <isset property="msvc.32.10.0.exists" />
+            <not>
+               <isset property="msvc.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.64.9.0.exists" file="c:/Program Files (x86)/Microsoft Visual Studio 9.0\vc\bin\amd64" type="dir"/>
+      <condition property="msvc.dir" value="c:/Program Files (x86)/Microsoft Visual Studio 9.0">
+         <and>
+            <not>
+               <or>
+                  <os arch="x86" />
+                  <os arch="i386" />
+               </or>
+            </not>
+            <os family="windows" />
+            <isset property="msvc.64.9.0.exists" />
+            <not>
+               <isset property="msvc.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.32.9.0.exists" file="c:/Program Files/Microsoft Visual Studio 9.0\vc\bin" type="dir"/>
+      <condition property="msvc.dir" value="c:/Program Files/Microsoft Visual Studio 9.0">
+         <and>
+            <or>
+               <os arch="x86" />
+               <os arch="i386" />
+            </or>
+            <os family="windows" />
+            <isset property="msvc.32.9.0.exists" />
+            <not>
+               <isset property="msvc.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.sdk.7.1.exists" file="C:/Program Files/Microsoft SDKs/Windows/v7.1" type="dir"/>
+      <condition property="msvc.sdk.dir" value="C:/Program Files/Microsoft SDKs/Windows/v7.1">
+         <and>
+            <os family="windows" />
+            <isset property="msvc.sdk.7.1.exists" />
+            <not>
+               <isset property="msvc.sdk.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.sdk.7.0.exists" file="C:/Program Files/Microsoft SDKs/Windows/v7.0" type="dir"/>
+      <condition property="msvc.sdk.dir" value="C:/Program Files/Microsoft SDKs/Windows/v7.0">
+         <and>
+            <os family="windows" />
+            <isset property="msvc.sdk.7.0.exists" />
+            <not>
+               <isset property="msvc.sdk.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.sdk.6.0A.exists" file="C:/Program Files/Microsoft SDKs/Windows/v6.0A" type="dir"/>
+      <condition property="msvc.sdk.dir" value="C:/Program Files/Microsoft SDKs/Windows/v6.0A">
+         <and>
+            <os family="windows" />
+            <isset property="msvc.sdk.6.0A.exists" />
+            <not>
+               <isset property="msvc.sdk.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.sdk.7.0A.exists" file="C:/Program Files/Microsoft SDKs/Windows/v7.0A" type="dir"/>
+      <condition property="msvc.sdk.dir" value="C:/Program Files/Microsoft SDKs/Windows/v7.0A">
+         <and>
+            <os family="windows" />
+            <isset property="msvc.sdk.7.0A.exists" />
+            <not>
+               <isset property="msvc.sdk.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <available property="msvc.sdk.7.0A.32.exists" file="C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A" type="dir"/>
+      <condition property="msvc.sdk.dir" value="C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A">
+         <and>
+            <os family="windows" />
+            <isset property="msvc.sdk.7.0A.32.exists" />
+            <not>
+               <isset property="msvc.sdk.dir" />
+            </not>
+            <not>
+               <isset property="mingw.dir" />
+            </not>
+         </and>
+      </condition>
+
+      <echo message=" msvc.dir ${msvc.dir}"/>
+      <echo message=" msvc.sdk.dir ${msvc.sdk.dir}"/>
+
+   </target>
+
+   <target name="check" depends="init">
+
+      <fail message="Error:">
+         <condition>
+            <and>
+               <os family="windows" />
+               <isset property="msvc.dir" />
+               <not>
+                  <isset property="msvc.sdk.dir" />
+               </not>
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         At present msvc.dir seems to be configured but not msvc.sdk.dir
+         ]]>
+      </fail>
+
+      <fail message="Error:">
+         <condition>
+            <and>
+               <os family="windows" />
+               <not>
+                  <isset property="msvc.dir" />
+               </not>
+               <isset property="msvc.sdk.dir" />
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         At present msvc.sdk.dir seems to be configured but not msvc.dir
+         ]]>
+      </fail>
+      <available file="${msvc.dir}" type="dir" property="msvc.dir.exists" />
+      <available file="${msvc.sdk.dir}" type="dir" property="msvc.sdk.dir.exists" />
+
+      <fail message="Error:">
+         <condition>
+            <and>
+               <os family="windows" />
+               <isset property="msvc.dir" />
+               <not>
+                  <isset property="msvc.dir.exists" />
+               </not>
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         At present msvc.dir is set (to ${msvc.dir}) but that dir does not exist
+         ]]>
+      </fail>
+      <fail message="Error:">
+         <condition>
+            <and>
+               <os family="windows" />
+               <isset property="msvc.sdk.dir" />
+               <not>
+                  <isset property="msvc.sdk.dir.exists" />
+               </not>
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         At present msvc.sdk.dir is set (to ${msvc.sdk.dir}) but that dir does not exist
+         ]]>
+      </fail>
+
+
+      <available file="${mingw.dir}" type="dir" property="mingw.dir.exists" />
+      <fail message="Error:">
+         <condition>
+            <and>
+               <os family="windows" />
+               <isset property="mingw.dir" />
+               <not>
+                  <isset property="mingw.dir.exists" />
+               </not>
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         At present mingw.dir is set (to ${mingw.dir}) but that dir does not exist
+         ]]>
+      </fail>
+      <!--<echo message="java.home ${java.home}"/>-->
+      <!--<echo message="msvc.dir.exists ${msvc.dir.exists}"/>-->
+      <!--<echo message="msvc.sdk.dir.exists ${msvc.sdk.dir.exists}"/>-->
+      <!--<echo message="mingw.dir.exists ${mingw.dir.exists}"/>-->
+      <condition property="use.msvc">
+         <and>
+            <os family="windows" />
+            <isset property="msvc.dir.exists" />
+            <isset property="msvc.sdk.dir.exists" />
+         </and>
+      </condition>
+      <!--<echo message="use.msvc ${use.msvc}"/>-->
+
+      <condition property="use.mingw">
+         <and>
+            <os family="windows" />
+            <isset property="mingw.dir.exists" />
+         </and>
+      </condition>
+      <!--<echo message="use.mingw ${use.mingw}"/>-->
+
+      <fail message="Error:">
+         <condition>
+            <and>
+               <isset property="use.mingw" />
+               <isset property="use.msvc" />
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         At present ant is configured for both MinGW AND Microsoft Visual Studio. You need to pick one or the other :) !
+
+         Just comment out the properties for the compiler that you *do not* wish to use.
+         ]]>
+      </fail>
+
+      <fail message="Error:">
+         <condition>
+            <and>
+               <os family="windows" />
+               <not>
+                  <or>
+                     <isset property="use.mingw" />
+                     <isset property="use.msvc" />
+                  </or>
+               </not>
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         This looks like a windows machine so you probably need to configure either:-
+
+         * msvc.dir and msvc.sdk.dir if you wish to use Microsoft Visual Studio compiler
+
+         * mingw.dir if you prefer if you prefer to use MinGW 
+         ]]>
+      </fail>
+
+      <condition property="use.gcc">
+         <and>
+            <os family="unix" />
+            <not>
+               <os family="mac" />
+            </not>
+         </and>
+      </condition>
+
+      <condition property="use.gcc_mac">
+         <os family="mac" />
+      </condition>
+
+      <condition property="x86_or_x86_64" value="x86" else="x86_64">
+         <or>
+            <os arch="x86" />
+            <os arch="i386" />
+         </or>
+      </condition>
+
+      <condition property="optional.amd64.subdir" value="" else="amd64\">
+         <or>
+            <os arch="x86" />
+            <os arch="i386" />
+         </or>
+      </condition>
+
+      <condition property="optional.x64.subdir" value="" else="x64\">
+         <or>
+            <os arch="x86" />
+            <os arch="i386" />
+         </or>
+      </condition>
+
+
+      <available file="${msvc.dir}\vc\bin\${optional.amd64.subdir}cl.exe" type="file" property="cl.exists" />
+
+      <fail message="Error:">
+         <condition>
+            <and>
+               <isset property="use.msvc" />
+               <not>
+                  <isset property="cl.exists" />
+               </not>
+            </and>
+         </condition>
+         <![CDATA[
+         You will need to edit com.amd.aparapi.jni/build.properties to compile aparapi JNI code
+
+         Could not find vc\bin\${optional.amd64.subdir}cl under configured msvc.dir. Check if msvc.dir is pointing
+         to a valid visual studio installation
+         ]]>
+      </fail>
+
+   </target>
+
+   <target name="clean" depends="check" >
+    <delete dir="include" />
+    <delete dir="${basedir}/classes" />
+    <delete dir="${basedir}/dist" />
+    <delete dir="${basedir}/junit" />
+      <delete quiet="true">
+         <fileset dir="${basedir}" includes="*.obj,*pdb"/>
+      </delete>
+   </target>
+
+   	<target name="javac" depends="clean" description="compile java">
+       <mkdir dir="classes"/>
+   	   <mkdir dir="dist"/>
+   	   <javac debug="true"
+   	      debuglevel="lines,vars,source"
+   		  srcdir="./okra-java/src"
+   		  destdir="./classes"
+   		  includeantruntime="false">
+   		     <compilerarg value="-Xlint"/>
+   			 <compilerarg value="-Xlint:-path"/>
+       </javac>
+       <jar jarfile="./dist/okra.jar" basedir="./classes"/>
+   	</target>
+
+    <available property="junit.installed" file="${junit.home}/${junit.jar.name}"/>
+
+    <target name="install.junit" unless="junit.installed">
+       <mkdir dir="${junit.home}"/>
+       <!-- Cleanup all existing JUnit installations -->
+       <delete failonerror="false" includeEmptyDirs="true">
+          <fileset dir="${junit.home}" includes="junit*/"/>
+       </delete>
+       <!-- Download and unzip requested JUnit version -->
+       <get src="${junit.base.url}/${junit.jar.version}/${junit.jar.name}" dest="${junit.home}"/>
+    </target>
+
+	   <path id="classpath">
+	      <pathelement path="${junit.home}/${junit.jar.name}"/>
+	      <pathelement path="classes"/>
+	   </path>
+
+	   <target name="junit" depends="build, install.junit">
+	      <mkdir dir="classes"/>
+	      <javac debug="true"
+	         debuglevel="lines,vars,source"
+	         srcdir="test"
+	         destdir="classes"
+	         includeAntRuntime="false"
+	         classpathref="classpath">
+	         <compilerarg value="-Xlint"/>
+	         <compilerarg value="-Xlint:-path"/>
+	      </javac>
+
+	      <mkdir dir="junit"/>
+	      <mkdir dir="junit/data"/>
+
+	      <!-- even though fork is slower we need to set the cwd and this requires fork -->
+
+	      <junit printsummary="false" fork="true" haltonfailure="false" dir="${basedir}/junit" failureproperty="tests.failed" showoutput="false">
+	         <formatter type="xml" />
+	         <classpath refid="classpath"/>
+	         <batchtest todir="junit/data">
+	            <fileset dir="test"/>
+	         </batchtest>
+	      </junit>
+
+	      <junitreport todir="junit/data">
+	         <fileset dir="junit/data"/>
+	         <report format="frames" todir="junit/html" />
+	      </junitreport>
+	   </target>
+
+	
+   <target name="javah" depends="javac">
+      <mkdir dir="include" />
+      <javah classpath="./dist/okra.jar" destdir="include" force="true">
+         <class name="com.amd.okra.OkraContext" />
+         <class name="com.amd.okra.OkraKernel" />
+         <class name="com.amd.okra.OkraOpenCLtoHSAILCompiler" />
+      </javah>
+   </target>
+ </project>

@@ -1,0 +1,37 @@
+version 0:95: $full : $large;
+
+function &squareWithAdjustment (arg_f64 %_result) (arg_u64 %_this,  arg_f64 %_val) {
+  ld_arg_u64  $d7, [%_this];
+  ld_arg_f64  $d8, [%_val];
+  ld_global_f64 $d6, [$d7 + 16]; // adjustment
+  mad_f64     $d6, $d8, $d8, $d6;   // val*val + adj
+  st_arg_f64  $d6, [%_result];
+  ret;
+};
+
+kernel &run(
+   kernarg_u64 %_this ){
+   ld_kernarg_u64 $d2, [%_this];  // this
+   ld_global_u64 $d1, [$d2 + 0];  // inarray
+   ld_global_u64 $d0, [$d2 + 8];  // outarray
+   ld_global_f64 $d6, [$d2 + 16]; // adjustment
+
+   workitemabsid_u32 $s2, 0;
+   cvt_s64_s32 $d2, $s2;
+   mad_u64 $d3, $d2, 8, $d1; 
+   ld_global_f64 $d3, [$d3];         // load inarray[gid]
+   {
+   arg_u64 %__this;
+   arg_f64 %_inval;
+   arg_f64 %_outval;
+   ld_kernarg_u64 $d7, [%_this];    // this
+   st_arg_u64   $d7, [%__this];
+   st_arg_f64 $d3, [%_inval];       // pass to function
+   call &squareWithAdjustment (%_outval) (%__this, %_inval);
+   ld_arg_f64 $d5, [%_outval];      // get result
+   }
+   mad_u64 $d4, $d2, 8, $d0;
+   st_global_f64 $d5, [$d4];        // store in outarray  
+   ret;
+ };
+

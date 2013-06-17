@@ -1,0 +1,361 @@
+// University of Illinois/NCSA
+// Open Source License
+// 
+// Copyright (c) 2013, Advanced Micro Devices, Inc.
+// All rights reserved.
+// 
+// Developed by:
+// 
+//     Runtimes Team
+// 
+//     Advanced Micro Devices, Inc
+// 
+//     www.amd.com
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal with
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+// of the Software, and to permit persons to whom the Software is furnished to do
+// so, subject to the following conditions:
+// 
+//     * Redistributions of source code must retain the above copyright notice,
+//       this list of conditions and the following disclaimers.
+// 
+//     * Redistributions in binary form must reproduce the above copyright notice,
+//       this list of conditions and the following disclaimers in the
+//       documentation and/or other materials provided with the distribution.
+// 
+//     * Neither the names of the LLVM Team, University of Illinois at
+//       Urbana-Champaign, nor the names of its contributors may be used to
+//       endorse or promote products derived from this Software without specific
+//       prior written permission.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
+// SOFTWARE.
+//===----------------------------------------------------------------------===//
+
+#include "common.h"
+//for hsa
+#include "hsa.h"
+
+#include "okraContext.h"
+#include "fileUtils.h"
+#include <string>
+#include <iostream>
+#include <fstream>
+
+// An OkraContext interface implementation using the old HSA Runtime API
+// (which was being used in Haparapi)
+
+class OkraContextSimulatorImpl : public OkraContext {
+	friend OkraContext * OkraContext::Create(); 
+	
+private:
+	class KernelImpl : public OkraContext::Kernel {
+	public:
+		hsa::Kernel* hsaKernel;
+		OkraContextSimulatorImpl* context;
+		//add hsaargs here
+		hsacommon::vector<hsa::KernelArg> hsaArgs;
+		
+		//Hsa launch attributes
+		hsa::LaunchAttributes hsaLaunchAttr;
+		
+		KernelImpl(hsa::Kernel* _hsaKernel, OkraContextSimulatorImpl* _context) {
+			hsaKernel = _hsaKernel;
+			context = _context;
+		}
+	
+		OkraStatus argsPushBack(hsa::KernelArg *harg) {
+			hsaArgs.push_back(*harg);
+			return OKRA_OK;
+		}
+		
+		OkraStatus pushFloatArg(jfloat f) {
+			hsa::KernelArg harg;
+			harg.fvalue = f;
+			return argsPushBack(&harg);
+		}
+	
+		OkraStatus pushIntArg(jint i) {
+			hsa::KernelArg harg;
+			harg.s32value = i;
+			return argsPushBack(&harg);
+		}
+	
+		OkraStatus pushBooleanArg(jboolean z) {
+			hsa::KernelArg harg;
+			harg.u32value = z;
+			return argsPushBack(&harg);
+		}
+	
+		OkraStatus pushByteArg(jbyte b) {
+			hsa::KernelArg harg;
+			harg.s32value = b;  //not sure if this is right, verify later
+			return argsPushBack(&harg);
+		}
+	
+		OkraStatus pushLongArg(jlong j) {
+			hsa::KernelArg harg;
+			harg.s64value = j; 
+			return argsPushBack(&harg);
+		}
+
+		OkraStatus pushDoubleArg(jdouble d) {
+			hsa::KernelArg harg;
+			harg.dvalue = d; 
+			return argsPushBack(&harg);
+		}
+		
+		
+		OkraStatus pushPointerArg(void *addr) {
+			//add the kernelarg for hsa runtime into the vector
+			hsa::KernelArg harg;
+			harg.addr = addr;
+			if (context->isVerbose()) cerr<<"pushPointerArg, addr=" << addr <<endl;
+			return argsPushBack(&harg);
+		}
+
+		// allow a previously pushed arg to be changed
+		OkraStatus setPointerArg(int idx, void *addr) {
+			hsa::KernelArg harg;
+			harg.addr = addr;
+			if (context->isVerbose()) cerr<<"setPointerArg, addr=" << addr <<endl;
+			hsaArgs.at(idx) = harg;
+			return OKRA_OK;
+		}
+
+		OkraStatus clearArgs() {
+			hsaArgs.clear();
+			return OKRA_OK;
+		}
+
+		OkraStatus dispatchKernelWaitComplete() {
+			hsacommon::vector<hsa::Event *> depEvent;
+			hsa::DispatchEvent* hsaDispEvent = context->hsaQueue->dispatch(hsaKernel, 
+																		   hsaLaunchAttr,
+																		   depEvent,
+																		   hsaArgs);
+	
+			// in the simulator the returned hsaDispEvent is always null
+			// so we just assume the kernel is finished
+			// how to get a status here??
+			// hsa::Status st = hsaDispEvent->wait();
+			// return (mapHsaErrorToOkra(st)); 
+			return OKRA_OK;
+		}
+
+		
+		// NOTE: the okra "spec" treates globalDims as NDRangeSize
+		// whereas the simulator currently treats what we call
+		// globalDims as the number of grid blocks (so NDRangeSize =
+		// grid * group).  So we need to do the conversion here.
+
+		OkraStatus setLaunchAttributes(int dims, size_t *globalDims, size_t *localDims) {
+			for (int k=0; k<dims; k++) {
+				computeLaunchAttr(k, globalDims[k], localDims[k]);
+			}
+			return OKRA_OK;
+		}
+
+	private:
+		void computeLaunchAttr(int level, int globalSize, int localSize) {
+			// localSize of 0 means pick best
+			// on the simulator, we might as well pick a group size of 1
+			// since the simulator launch engine itself will still spawn
+			// enough pthreads to use all the system processors
+			if (localSize == 0) localSize = 1;
+			// but also use SIMTHREADS env variable to limit the localSize
+			if (context->maxSimThreads) localSize = std::min(localSize, context->maxSimThreads);
+
+			// Check if globalSize is a multiple of localSize
+			int legalGroupSize = findLargestFactor(globalSize, localSize);
+
+			if (legalGroupSize != localSize) {
+				cerr << "WARNING: groupSize[" << level << "] reduced to " << legalGroupSize << endl;
+			}
+
+			hsaLaunchAttr.groupOffsets[level] = 0;
+			hsaLaunchAttr.grid[level] = globalSize / legalGroupSize;
+			hsaLaunchAttr.group[level] = legalGroupSize;
+			//debugging
+			if (context->isVerbose()) {
+				cerr << "level " << level << ", grid=" << hsaLaunchAttr.grid[level] << ", group=" << hsaLaunchAttr.group[level] << endl;
+			}
+		}
+
+		// find largest factor less than or equal to start
+		int findLargestFactor(int n, int start) {
+			for (int div = start; div >=1; div--) {
+				if (n % div == 0) return div;
+			}
+			return 1;
+		}
+
+		int gcd(int n, int m) {
+			return (m == 0? n : gcd(m, n%m));
+		}
+
+	};
+
+private:
+	hsa::RuntimeApi *hsaRT;
+	uint32_t numDevices;
+	hsacommon::vector<hsa::Device *> devices;
+	hsa::Queue *hsaQueue;
+	int maxSimThreads;
+
+	// constructor
+	OkraContextSimulatorImpl() {
+		setVerbose(false);   // can be set true by higher levels later
+		hsaRT = hsa::getRuntime();
+		if(!hsaRT) {
+			cerr<<"Fatal: Cannot get HSA Runtime"<<endl;
+			exit(1);
+		}
+
+		numDevices = hsaRT->getDeviceCount();
+		if(!numDevices) {
+			cerr<<"Fatal: No HSA device exists"<<endl;
+			exit(-1);
+		}
+
+		devices = hsaRT->getDevices();
+
+		hsa::Device *device = devices[0];
+		hsaQueue = device->createQueue(1);
+		if(!hsaQueue) {
+			cerr<<"Fatal: could not create hsaQueue"<<endl;
+			exit(-1);
+		}
+
+		char *threnv = getenv("SIMTHREADS");
+		if ((threnv != NULL) && (atoi(threnv) > 0)) {
+			maxSimThreads = atoi(threnv);
+		}
+		else {
+			maxSimThreads = 0;
+		}
+		
+		if (isVerbose()) cerr<<"HSA Runtime successfully initialized"<<endl;
+		
+	}
+
+public:
+	Kernel * createKernel(const char *hsailBuffer, const char *entryName) {
+		string *fixedHsailStr = fixHsail(hsailBuffer);
+		
+		ofstream ofs("temp_hsa.hsail");
+		if (isVerbose()) cerr << "Fixed Hsail is\n==============\n" << *fixedHsailStr << endl;
+		ofs  << *fixedHsailStr;
+		ofs.close();
+		delete(fixedHsailStr);
+
+		// writeToFile(fixedHsailBuffer, strlen(fixedHsailBuffer), (char *) "temp_hsa.hsail");
+
+		// use the -build hsailasm to translate source
+		// use debug flag
+		int ret = spawnProgram("hsailasm temp_hsa.hsail -o temp_hsa.o");
+		if (ret != 0) return NULL;
+		if (isVerbose()) cerr << "hsailasm succeeded\n";
+
+		size_t brigSize = 0;
+		char *brigBuffer = readFile("./temp_hsa.o", brigSize);
+		if (brigBuffer == NULL) {
+			printf("cannot read from the temp_hsa.o file\n"); 
+			return NULL;
+		}
+
+		hsa::Program *hsaProgram =	hsaRT->createProgram(brigBuffer, brigSize, &devices);
+		if(!hsaProgram) {
+			cerr<<"HSA create program failed"<<endl;
+			return NULL;
+		}
+		if (isVerbose()) cerr << "createProgram succeeded\n";
+
+		hsa::Kernel *hsaKernel = hsaProgram->compileKernel(entryName, "");
+		if(!hsaKernel) {
+			cerr<<"HSA create kernel failed"<<endl;
+			return NULL;
+		}
+		if (isVerbose()) cerr << "createKernel succeeded\n";
+
+		// if we got this far, success
+		return new KernelImpl(hsaKernel, this);
+	}
+
+	OkraStatus dispose(){
+#if 0
+		if (hsaProgram) {
+			hsaRuntime->destroyProgram(hsaProgram);
+		}
+#endif
+		return OKRA_OK;
+	}
+
+	OkraStatus registerArrayMemory(void *addr, jint lengthInBytes) {
+#if 0
+		hsaDevices[0]->registerMemory(addr, lengthInBytes);
+#endif
+		return OKRA_OK;
+	}
+
+private:
+	int spawnProgram (const char *cmd) {
+		if (isVerbose()) cerr << "spawning Program: " << cmd << endl;
+		// not sure if we really have to do anything different for windows or linux here
+		// assuming the utility is in the path
+		return system(cmd);
+	}
+
+	string * fixHsail(const char *hsailStr) {
+		string *s = new string(hsailStr);
+
+		// the following conversions should no longer be needed because newer hsailasm is being used
+		if (false) {
+			// conversions are from 0.95 Spec format to MCW assembler format
+			// version string, we don't really handle the non-$full models here 
+			// also this should be made more regex based so we don't depend on whitespace
+			replaceAll (*s, "0:95: $full : $large", "1:0");
+			replaceAll (*s, "0:95: $full : $small", "1:0:$small");
+			// workitemabsid mnemonic
+			replaceAll (*s, "workitemabsid_u32", "workitemabsid");
+			// mul_hi mnemonic
+			replaceAll (*s, "mulhi", "mul_hi");
+			
+			// MCW assembler is pick about DOS line endings
+			replaceAll (*s, "\r", "");
+		}
+		if (false) {
+			// the following were the conversions from June 2012 format into MCW assembler format
+			replaceAll (*s, "1:0:large", "1:0");
+			replaceAll (*s, "1:0:small", "1:0:$small");
+			replaceAll (*s, "workitemaid", "workitemabsid");
+			replaceAll (*s, "cvt_near_f64_f32", "cvt_f64_f32");
+		}
+		return s;
+	}
+
+
+
+	static OkraStatus mapHsaErrorToOkra(hsa::Status st) {
+		return (st == hsa::RSTATUS_SUCCESS ? OKRA_OK : OKRA_OTHER_ERROR);
+	}
+}; // end of OkraContextSimulatorImpl
+
+bool OkraContext::isSimulator() {
+	return true;
+}
+
+// Create an instance thru the OkraContext interface
+// DLLExport
+DLLExport
+OkraContext * OkraContext::Create() {		
+	return new OkraContextSimulatorImpl();
+}

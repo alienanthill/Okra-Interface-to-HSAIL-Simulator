@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<project name="groupsize" default="build" basedir=".">
+   <target name="build" depends="clean">
+      <mkdir dir="classes"/>
+      <javac srcdir="src" destdir="classes" debug="on" includeantruntime="false" >
+         <classpath>
+            <pathelement path="../../dist/okra.jar"/>
+         </classpath>
+      </javac>
+      <jar jarfile="${ant.project.name}.jar" basedir="classes"/>
+	  <copy file="src/hsail/groupsize.hsail" todir="."/>
+   </target>
+
+   <target name="clean">
+      <delete dir="classes"/>
+      <delete file="${ant.project.name}.jar"/>
+   </target>
+
+
+</project>
