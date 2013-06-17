@@ -85,9 +85,11 @@ class Main {
 
 		kernel.dispatchKernelWaitComplete();
 
+		boolean passed = true;
 		for (int i=0; i<NUMELEMENTS; i++) {
 			System.out.print(i + "->" +  outArray[i] + ",  ");
+			if (outArray[i] != i*i) passed = false;
 		}
-		System.out.println("\n");
+		System.out.println((passed ? "\nPASSED": "\nFAILED") + "\n");
 	}
 }

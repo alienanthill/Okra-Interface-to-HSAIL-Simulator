@@ -261,7 +261,7 @@ public:
 
 		// use the -build hsailasm to translate source
 		// use debug flag
-		int ret = spawnProgram("hsailasm temp_hsa.hsail -o temp_hsa.o");
+		int ret = spawnProgram("hsailasm temp_hsa.hsail -g -o temp_hsa.o");
 		if (ret != 0) return NULL;
 		if (isVerbose()) cerr << "hsailasm succeeded\n";
 

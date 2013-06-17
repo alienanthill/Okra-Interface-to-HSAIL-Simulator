@@ -1,6 +1,14 @@
 <project name="okra.common.targets" basedir=".">
    <target name="init">
 
+      <condition property="target.os" value="windows">
+        <os family="windows" />
+      </condition>
+
+      <condition property="target.os" value="linux">
+        <os family="unix" />
+      </condition>
+
       <available property="msvc.64.10.0.exists" file="c:/Program Files (x86)/Microsoft Visual Studio 10.0\vc\bin\amd64" type="dir"/>
       <condition property="msvc.dir" value="c:/Program Files (x86)/Microsoft Visual Studio 10.0">
          <and>

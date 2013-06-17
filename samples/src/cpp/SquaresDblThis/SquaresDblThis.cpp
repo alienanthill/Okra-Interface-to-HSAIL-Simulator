@@ -105,10 +105,12 @@ public:
 			adjustment = j* 0.123;
 			kernel->dispatchKernelWaitComplete();
 			
+			bool passed = true;
 			for (int i=0; i<NUMELEMENTS; i++) {
 				cout << i << "->" << outArray[i] << ",  ";
+				if (outArray[i] != i*i + adjustment) passed = false;
 			}
-			cout << endl << endl;
+			cout << endl << (passed ? "PASSED" : "FAILED") << endl;
 		}
 	}
 };

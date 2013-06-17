@@ -45,6 +45,7 @@
 #include <string>
 #include <sstream>
 #include "utils.h"
+#include <math.h>
 
 using namespace std;
 
@@ -121,11 +122,17 @@ int main(int argc, char *argv[]) {
 	kernel->dispatchKernelWaitComplete();
 
 	// show results
+	bool passed = true;
 	for (int i=0; i<NUMELEMENTS; i++) {
 		cout << dec << i << "->" << showFloat(outArray[i]) << ",  ";
 		if (i%5 == 4) cout << endl;
+		float expected = sqrt(i*i + (i+1)*(i+1) + (i+2)*(i+2));
+		if (outArray[i] != expected) {
+			// cout << "saw " << outArray[i] << ", expected " << expected << endl;
+			passed = false;
+		}
 	}
-	cout << endl << endl;
+	cout << endl << (passed ? "PASSED" : "FAILED") << endl;
 	
 	return 0;
 }

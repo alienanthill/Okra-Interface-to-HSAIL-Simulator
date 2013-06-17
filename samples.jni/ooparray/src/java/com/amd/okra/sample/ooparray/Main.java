@@ -106,10 +106,15 @@ class Main {
 
 		kernel.dispatchKernelWaitComplete();
 
+		boolean passed = true;
 		for (int i=0; i<NUMELEMENTS; i++) {
 			System.out.print(i + "->" +  showFloat(outArray[i]) + ",  ");
 			if (i%5 == 4) System.out.println();
+			float expected = (float)Math.sqrt(i*i + (i+1)*(i+1) + (i+2)*(i+2));
+			if (outArray[i] != expected) {
+				passed = false;
+			}
 		}
-		System.out.println("\n");
+		System.out.println((passed ? "PASSED": "FAILED") + "\n");
 	}
 }
