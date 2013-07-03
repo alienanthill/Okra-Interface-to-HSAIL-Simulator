@@ -443,7 +443,7 @@
       <javah classpath="./dist/okra.jar" destdir="include" force="true">
          <class name="com.amd.okra.OkraContext" />
          <class name="com.amd.okra.OkraKernel" />
-         <class name="com.amd.okra.OkraOpenCLtoHSAILCompiler" />
+         <class name="com.amd.okra.OkraUtil" />
       </javah>
    </target>
  </project>
