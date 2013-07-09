@@ -4,7 +4,7 @@ function &squareWithAdjustment (arg_f64 %_result) (arg_u64 %_this,  arg_f64 %_va
   ld_arg_u64  $d7, [%_this];
   ld_arg_f64  $d8, [%_val];
   ld_global_f64 $d6, [$d7 + 16]; // adjustment
-  mad_f64     $d6, $d8, $d8, $d6;   // val*val + adj
+  fma_f64     $d6, $d8, $d8, $d6;   // val*val + adj
   st_arg_f64  $d6, [%_result];
   ret;
 };
