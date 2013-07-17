@@ -112,7 +112,7 @@
 	  <!-- copy executables preserving x bit (too bad there is no ant task that preserves x bits) -->
 	  <!-- hsailasm is built by the sim build rule.  We need to use it when assembling for the simulator -->
 	  <exec executable="cp" failonerror="true">
-		<arg line="${simbuild}/test/hsailasm dist/bin" />
+		<arg line="${simbuild}/HSAIL-Tools/hsailasm dist/bin" />
 	  </exec>
    </target>
 
