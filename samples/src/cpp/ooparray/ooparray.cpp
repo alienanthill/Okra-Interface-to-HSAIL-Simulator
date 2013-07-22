@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
 	for (int i=0; i<NUMELEMENTS; i++) {
 		cout << dec << i << "->" << showFloat(outArray[i]) << ",  ";
 		if (i%5 == 4) cout << endl;
-		float expected = sqrt(i*i + (i+1)*(i+1) + (i+2)*(i+2));
+		float expected = sqrt((float)(i*i + (i+1)*(i+1) + (i+2)*(i+2)));
 		if (outArray[i] != expected) {
 			// cout << "saw " << outArray[i] << ", expected " << expected << endl;
 			passed = false;

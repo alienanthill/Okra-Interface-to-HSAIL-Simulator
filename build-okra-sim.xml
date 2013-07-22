@@ -84,6 +84,7 @@
       <mkdir dir="${basedir}/dist/lib"/>
       <mkdir dir="${basedir}/dist/include"/>
       <mkdir dir="${basedir}/dist/bin"/>
+      <mkdir dir="${basedir}/dist/tools"/>
       <echo message="linuxcc ${os.arch}" />
       <exec executable="g++">
 <!--
@@ -114,6 +115,13 @@
 	  <exec executable="cp" failonerror="true">
 		<arg line="${simbuild}/HSAIL-Tools/hsailasm dist/bin" />
 	  </exec>
+	  <!--- tools 
+	  <copy todir="dist/tools">
+		<fileset dir="simtools">
+		  <include name="*"/>
+		</fileset>
+	  </copy>
+	  -->
    </target>
 
    <target name="build" depends="clean, getsim, buildsim, javah, gcc" />

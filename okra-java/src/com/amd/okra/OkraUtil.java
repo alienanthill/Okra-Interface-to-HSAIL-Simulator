@@ -39,7 +39,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
 // SOFTWARE.
 //===----------------------------------------------------------------------===//
-
 package com.amd.okra;
 
 import java.util.concurrent.atomic.AtomicLong;

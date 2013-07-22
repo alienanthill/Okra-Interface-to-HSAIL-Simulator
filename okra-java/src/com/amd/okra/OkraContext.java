@@ -39,11 +39,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
 // SOFTWARE.
 //===----------------------------------------------------------------------===//
-
 package com.amd.okra;
+
+import java.io.File;
+import java.util.logging.*;
 
 public class OkraContext {
 
+    private static final Logger logger = Logger.getLogger("okracontext");
     /***
      * enum OkraStatus { OKRA_OK, OKRA_OTHER_ERROR };
      ***/
@@ -51,7 +54,10 @@ public class OkraContext {
         loadOkraNativeLibrary();
     } // end static
 
+	private static boolean isNativeLibraryLoaded;
+
     static void loadOkraNativeLibrary() {
+		if (isNativeLibraryLoaded) return;
         String arch = System.getProperty("os.arch");
         String okraLibraryName = null;
         String okraLibraryRoot = "okra";
@@ -61,10 +67,27 @@ public class OkraContext {
         } else if (arch.equals("x86") || arch.equals("i386")) {
             okraLibraryName = okraLibraryRoot + "_x86";
         } else {
-            System.out.println("Expected property os.arch to contain amd64, x86_64, x86 or i386 but instead found " + arch + " as a result we don't know which okra to attempt to load.");
+            logger.fine("Expected property os.arch to contain amd64, x86_64, x86 or i386 but instead found " + arch + " as a result we don't know which okra to attempt to load.");
         }
         if (okraLibraryName != null) {
-            Runtime.getRuntime().loadLibrary(okraLibraryName);
+			// since the library directory (okra/dist/bin) also needs to be part of the PATH env variable, check that
+			String pathStr = System.getenv("PATH");
+			String[] paths = pathStr.split(File.pathSeparator);
+			for (String path : paths) {
+				String okraLibraryFullName = path + File.separator + System.mapLibraryName(okraLibraryName);
+				// System.out.println("testing for okra library at " + okraLibraryFullName);
+				if (new File(okraLibraryFullName).isFile()) {
+					System.load(okraLibraryFullName);
+					// System.out.println("loaded okra library from " + okraLibraryFullName);
+					isNativeLibraryLoaded = true;
+					return;
+				}
+			}
+			// we shouldn't get this far, but if we do, use whatever boot.library.path was set up
+            System.loadLibrary(okraLibraryName);
+			// System.out.println("loaded okra library using System.loadLibrary()");
+			isNativeLibraryLoaded = true;
+			return;
         }
     }
 

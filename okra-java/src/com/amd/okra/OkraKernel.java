@@ -39,7 +39,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
 // SOFTWARE.
 //===----------------------------------------------------------------------===//
-
 package com.amd.okra;
 
 public class OkraKernel {
@@ -48,10 +47,10 @@ public class OkraKernel {
         OkraContext.loadOkraNativeLibrary();
     } // end static
 
-    public OkraKernel(OkraContext _okraContext, String source, String entryName) {
-        okraContext = _okraContext;
-        contextHandle = _okraContext.getContextHandle();
-        kernelHandle = _okraContext.createKernelJNI(source, entryName);
+    public OkraKernel(OkraContext okraContextInput, String source, String entryName) {
+        okraContext = okraContextInput;
+        contextHandle = okraContextInput.getContextHandle();
+        kernelHandle = okraContextInput.createKernelJNI(source, entryName);
         argsVecHandle = 0;
         // register the whole range of heap memory in the device
         // we give it one object and it deduces the range
@@ -160,7 +159,7 @@ public class OkraKernel {
         clearArgs();
         for (Object arg : args) {
             Class<?> argclass = arg.getClass();
-            // System.out.println("argclass=" + argclass);
+
             if (!pushPrimitiveArg(argclass, arg)) {
                 // in this usage everything that is not a primitive is pushed as an "object"
                 pushObjectArg(arg);
@@ -175,7 +174,7 @@ public class OkraKernel {
         clearArgs();
         for (Object arg : args) {
             Class<?> argclass = arg.getClass();
-            // System.out.println("argclass=" + argclass);
+
             if (!pushPrimitiveArg(argclass, arg)) {
                 if (argclass.equals(float[].class)) {
                     pushFloatArrayArg((float[]) arg);
@@ -190,12 +189,10 @@ public class OkraKernel {
                 } else if (argclass.equals(byte[].class)) {
                     pushByteArrayArg((byte[]) arg);
                 } else if (arg instanceof Object[]) {
-                    // System.out.println("array but not a primitive array for " + arg +
-// ", pushing Object array");
+
                     pushObjectArrayArg((Object[]) arg);
                 } else {
-                    // System.out.println("no primitive or primitive array match for " + arg +
-// ", pushing Object");
+
                     // since we registered the heap when okraContext was created,
                     // we believe no further memory registration is needed here
                     pushObjectArg(arg);
@@ -205,4 +202,4 @@ public class OkraKernel {
         return dispatchKernelWaitComplete();
     }
 
-};
+}

@@ -48,10 +48,10 @@
 #include "fileUtils.h"
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 
-// An OkraContext interface implementation using the old HSA Runtime API
-// (which was being used in Haparapi)
+// An OkraContext interface to the simulator
 
 class OkraContextSimulatorImpl : public OkraContext {
 	friend OkraContext * OkraContext::Create(); 
@@ -359,3 +359,29 @@ DLLExport
 OkraContext * OkraContext::Create() {		
 	return new OkraContextSimulatorImpl();
 }
+
+#include "brig_runtime.h"
+// for debugging
+hsa::brig::BrigRegState prevRegState;
+using namespace std;
+
+static void showRegChanges(hsa::brig::BrigRegState *regs) {
+  for (int i=0; i<8; i++) {
+	if (regs->c[i] != prevRegState.c[i]) {
+	  cout << "$c" << i << "=" << regs->c[i] << endl;
+	}
+  }
+  for (int i=0; i<128; i++) {
+	if (regs->s[i] != prevRegState.s[i]) {
+		cout << dec << "$s" << i << "=" << regs->s[i] << ",  (0x" << setfill('0') << setw(8) << hex << regs->s[i] << "),  FP: " << *(float *)&(regs->s[i]) << endl;
+	}
+  }
+  for (int i=0; i<64; i++) {
+	if (regs->d[i] != prevRegState.d[i]) {
+		cout << dec << "$d" << i << "=" << regs->d[i] << ",  (0x" << setfill('0') << setw(16) << hex << regs->d[i] << "),  FP: " << *(double *)&(regs->d[i]) << endl;
+	}
+  }
+  cout << "\n";
+  prevRegState = *regs;
+}
+
