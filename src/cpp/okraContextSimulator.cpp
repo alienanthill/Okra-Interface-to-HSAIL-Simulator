@@ -272,22 +272,17 @@ public:
 			return NULL;
 		}
 
-		hsa::Program *hsaProgram =	hsaRT->createProgram(brigBuffer, brigSize, &devices);
-		if(!hsaProgram) {
-			cerr<<"HSA create program failed"<<endl;
+		return createKernelCommon(brigBuffer, brigSize, entryName);
+	}
+
+	Kernel * createKernelFromBinary(const char *brigBuffer, size_t brigSize, const char *entryName) {
+		char *ptr = reinterpret_cast<char*>(malloc(brigSize));
+		if (!ptr) {
 			return NULL;
 		}
-		if (isVerbose()) cerr << "createProgram succeeded\n";
 
-		hsa::Kernel *hsaKernel = hsaProgram->compileKernel(entryName, "");
-		if(!hsaKernel) {
-			cerr<<"HSA create kernel failed"<<endl;
-			return NULL;
-		}
-		if (isVerbose()) cerr << "createKernel succeeded\n";
-
-		// if we got this far, success
-		return new KernelImpl(hsaKernel, this);
+		memcpy(ptr, brigBuffer, brigSize);
+		return createKernelCommon(ptr, brigSize, entryName);
 	}
 
 	OkraStatus dispose(){
@@ -307,6 +302,25 @@ public:
 	}
 
 private:
+	Kernel * createKernelCommon(char *brigBuffer, size_t brigSize, const char *entryName) {
+		hsa::Program *hsaProgram =	hsaRT->createProgram(brigBuffer, brigSize, &devices);
+		if(!hsaProgram) {
+			cerr<<"HSA create program failed"<<endl;
+			return NULL;
+		}
+		if (isVerbose()) cerr << "createProgram succeeded\n";
+
+		hsa::Kernel *hsaKernel = hsaProgram->compileKernel(entryName, "");
+		if(!hsaKernel) {
+			cerr<<"HSA create kernel failed"<<endl;
+			return NULL;
+		}
+		if (isVerbose()) cerr << "createKernel succeeded\n";
+
+		// if we got this far, success
+		return new KernelImpl(hsaKernel, this);
+	}
+
 	int spawnProgram (const char *cmd) {
 		if (isVerbose()) cerr << "spawning Program: " << cmd << endl;
 		// not sure if we really have to do anything different for windows or linux here

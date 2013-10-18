@@ -73,8 +73,11 @@ public:
 		virtual OkraStatus dispatchKernelWaitComplete() = 0;
 	};
 
-	// create a kernel object from the specified source and entrypoint
+	// create a kernel object from the specified HSAIL text source and entrypoint
 	virtual Kernel * createKernel(const char *source, const char *entryName) = 0;
+
+	// create a kernel object from the specified Brig binary source and entrypoint
+	virtual Kernel * createKernelFromBinary(const char *binary, size_t size, const char *entryName) = 0;
 
 	// dispose of an environment including all programs
 	virtual OkraStatus dispose() = 0;
