@@ -235,13 +235,26 @@ JNI_JAVA(jint, OkraContext, registerObjectMemory)  (JNIEnv *jenv , jobject javaO
 JNI_JAVA(jint, OkraContext, registerHeapMemory)  (JNIEnv *jenv , jobject javaOkraContext, jobject obj) {
 	OkraContextHolder * okraContextHolder = getOkraContextHolderPointer(jenv, javaOkraContext);
 	bool show = okraContextHolder->isVerbose();
+#ifdef  _WIN32
 	// hack to make a pointer from the obj refererence
 	// this probably only works with compressed oops off, or with zero-based compressed oops
 	void *ptr = getPtrFromObjRef(obj);
 
 	// this is a no-op on the simulator.
 	// for hardware targets we would find the bounds of the heap and register it
+	size_t size;
+	void *startAddr = vqueryLargest(ptr, &size, show);
+	void *endAddr = ((byte *)startAddr) + size-1;
+	if (okraContextHolder->isVerbose()) {
+		cerr << "from object reference at " << ptr << ", we think heap region is from " << startAddr << " to " << endAddr
+			 << ", size=" << dec << size/(1024*1024) << "m" << endl;
+	}
 
+	// it seems we cannot register the parts that are just reserved vas (unbacked by real memory)
+	// so instead of just trying to register the "live" pieces, we will touch the whole heap
+	// (so it is all committed) and then register that big chunk with hsa
+	commitAndRegisterWholeHeap(startAddr, endAddr);
+#endif
 	return 0;
 }
 
