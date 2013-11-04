@@ -374,6 +374,18 @@ OkraContext * OkraContext::Create() {
 	return new OkraContextSimulatorImpl();
 }
 
+extern "C" DLLExport void  commitAndRegisterWholeHeap(void *startAddr, void *endAddr) {
+    // Nothing to here do for simulator
+    return;
+}
+
+extern "C" DLLExport void * vqueryLargest(void *addr, size_t *pSize, bool show) {
+    // Nothing to here do for simulator
+    cerr<<"Should not call vqueryLargest in Simulator"<<endl;
+    return NULL;
+}
+
+
 #include "brig_runtime.h"
 // for debugging
 hsa::brig::BrigRegState prevRegState;

@@ -134,16 +134,7 @@ OKRADLLEXPORT  bool _okra_clearargs(void* kernel) {
     return okraStatus == OkraContext::OKRA_OK ? true : false;
 }
 
-#if _WIN32
-OKRADLLEXPORT void  commitAndRegisterWholeHeap(void *startAddr, void *endAddr);
-#endif
-
 OKRADLLEXPORT  void _okra_register_heap(void* base, size_t size) {
-#if _WIN32
     void* endAddr = (void*)((jlong)base + size);
     commitAndRegisterWholeHeap(base, endAddr);
-#else
-    // Nothing to do for simulator
-#endif
-    
 }
