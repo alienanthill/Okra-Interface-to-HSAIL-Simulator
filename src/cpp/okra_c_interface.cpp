@@ -49,12 +49,16 @@
 #define OKRADLLEXPORT extern "C"
 #endif
 
+// These functions are here to expose an "extern C" interaface into Okra
+// that can be dynamically loaded and looked up using dlopen/dlsym etc.
+// These functions do not use JNI.
+// The workflow is create context, create kernel, clear args (if not first use).
+// push args, execute
 OKRADLLEXPORT  void* _okra_create_context() {
     return OkraContext::Create();
 }
 
 OKRADLLEXPORT  void* _okra_create_kernel(void* context, const char *source, const char *entryName) {
-    // virtual Kernel * createKernel(const char *source, const char *entryName) = 0;
     return (void*) ((OkraContext*)context)->createKernel(source, entryName);
 }
 
@@ -107,6 +111,7 @@ OKRADLLEXPORT  bool _okra_push_long(void* kernel, jlong val) {
     return okraStatus == OkraContext::OKRA_OK ? true : false;
 }
 
+// At this time we only support 1-d kernel ranges
 OKRADLLEXPORT  bool _okra_execute_with_range(void* kernel, jint numWorkItems) {
     OkraContext::OkraStatus okraStatus;    
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
@@ -121,6 +126,7 @@ OKRADLLEXPORT  bool _okra_execute_with_range(void* kernel, jint numWorkItems) {
     return (okraStatus == OkraContext::OKRA_OK);
 }
 
+// Call clearargs between executions of a kernel before setting the new args
 OKRADLLEXPORT  bool _okra_clearargs(void* kernel) {
     // kernel* is a Kernel
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
