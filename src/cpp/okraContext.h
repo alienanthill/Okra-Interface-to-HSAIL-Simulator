@@ -95,4 +95,7 @@ private:
 	bool verbose;
 };
 
+extern "C" DLLExport void * vqueryLargest(void *addr, size_t *pSize, bool show);
+extern "C" DLLExport void  commitAndRegisterWholeHeap(void *startAddr, void *endAddr);
+
 #endif // OKRACONTEXT_H
