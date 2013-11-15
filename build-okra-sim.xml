@@ -69,6 +69,18 @@
 	 <mkdir dir="${simbuild}" /> 
    </target>
 
+   <target name="updatesim" depends="getsim" >
+	 <echo message="... pulling simulator hsa runtime sources..."/>
+	 <exec dir="sim/hsail2brig" executable="git">
+	   <arg line="pull" />
+	 </exec>
+
+	 <echo message="... pulling libhsail sources..."/>
+	 <exec dir="sim/hsail2brig/src/brig2llvm/HSAIL-Tools" executable="git">
+	   <arg line="pull" />
+	 </exec>
+   </target>
+
    <available file="${simbuild}/src/hsa_runtime/libhsa.a" type="file" property="sim.built" />
    <target name="buildsim"   depends="getsim" >
 	 <exec dir="${simbuild}" executable="cmake">
