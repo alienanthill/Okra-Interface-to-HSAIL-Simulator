@@ -271,19 +271,19 @@ static void dumpref(jobject ref) {
 }
 
 JNI_JAVA(jlong, OkraContext, createRefHandle)  (JNIEnv *jenv , jclass clazz, jobject obj) {
-	cout << "getRefHandle, obj is " << obj << ", ptr is " << getPtrFromObjRef(obj) << endl;
+	//cout << "getRefHandle, obj is " << obj << ", ptr is " << getPtrFromObjRef(obj) << endl;
 	jbyte * pbobj = (jbyte *) getPtrFromObjRef(obj) ;
-	dumpref(obj);
+	//dumpref(obj);
 	jobject ref = jenv->NewGlobalRef(obj);
-	cout << "getRefHandle, ref is " << ref << ", ptr is " << getPtrFromObjRef(ref) << endl;
+	//cout << "getRefHandle, ref is " << ref << ", ptr is " << getPtrFromObjRef(ref) << endl;
 	return (jlong) ref;
 
 }
 
 JNI_JAVA(void, OkraContext, useRefHandle)  (JNIEnv *jenv , jclass clazz, jlong handle) {
 	jobject ref = (jobject) handle;
-	cout << "useRefHandle, ref is " << ref << ", ptr is " << getPtrFromObjRef(ref) << endl;
-	dumpref(ref);
+	//cout << "useRefHandle, ref is " << ref << ", ptr is " << getPtrFromObjRef(ref) << endl;
+	//dumpref(ref);
 }
 
 // would have been nice if we could have used templates here...
