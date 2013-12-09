@@ -65,12 +65,10 @@ static void * getPtrFromObjRef(jobject obj) {
 class OkraContextHolder {
 public:
 	OkraContext *realContext;
-	JNIEnv *jenv;
 	ArrayBuffer * dummyArrayBuf;
 
 	OkraContextHolder(OkraContext *_realContext, JNIEnv *_jenv, jarray _dummyArray) :
-		realContext(_realContext),
-	    jenv(_jenv) {
+		realContext(_realContext) {
         realContext->setVerbose(getenv("OKRA_VERBOSE") != NULL);
 		dummyArrayBuf = new ArrayBuffer(_dummyArray, sizeof(jint), -1, _jenv);
 	}
@@ -86,12 +84,10 @@ public:
 	int arg_count;
 	OkraContextHolder *okraContextHolder;
 	OkraContext::Kernel *realOkraKernel;
-	JNIEnv *jenv;
 
 	OkraKernelHolder(OkraContext::Kernel *_realKernel, OkraContextHolder *_okraContextHolder, JNIEnv *_jenv) :
 		realOkraKernel(_realKernel),
 		okraContextHolder(_okraContextHolder),
-	    jenv(_jenv),
 	    arg_count(0) {
 	}
 
@@ -99,38 +95,39 @@ public:
 		arrayBufs.push_back(arrayBuffer);
 	}
 
-	void clearArrayBuffers() {
+	void clearArrayBuffers(JNIEnv* _jenv) {
 		for (int i=0; i<arrayBufs.size(); i++) {
 			ArrayBuffer *arrayBuffer = arrayBufs.at(i);
+         arrayBuffer->dispose(_jenv);
 			delete arrayBuffer;
 		}
 		arrayBufs.clear();
 	}
 
-	void unpinArrays() {
+	void unpinArrays(JNIEnv *_jenv) {
 		// check if no real array arguments and if so, unpin our dummyArray 
 		if (arrayBufs.size() == 0) {
-			okraContextHolder->dummyArrayBuf->unpinCommit(jenv);
+		    okraContextHolder->dummyArrayBuf->unpinCommit(_jenv);
 		}
 		else {
 			for (int i=0; i<arrayBufs.size(); i++) {
 				ArrayBuffer *arrayBuffer = arrayBufs.at(i);
-				arrayBuffer->unpinCommit(jenv);
+				arrayBuffer->unpinCommit(_jenv);
 			}
 		}
 	}
 
-	void pinArrays() {
+	void pinArrays(JNIEnv *_jenv) {
 		// if no real array arguments, use our dummyArray arg so we can pin something
 		if (arrayBufs.size() == 0) {
-			okraContextHolder->dummyArrayBuf->pin(jenv);
+			okraContextHolder->dummyArrayBuf->pin(_jenv);
 		}
 		else {
 			for (int i=0; i<arrayBufs.size(); i++) {
 				ArrayBuffer *arrayBuffer = arrayBufs.at(i);
 				// FIXME, should be logic here to check for movement?
 				if (!arrayBuffer->isPinned) {
-					arrayBuffer->pin(jenv);
+					arrayBuffer->pin(_jenv);
 					// change the appropriate pointer argument in the arg stack
 					realOkraKernel->setPointerArg(arrayBuffer->arg_idx, arrayBuffer->addr);
 					// note: must also call registerArrayMemory (until we can make this call go away)
@@ -146,9 +143,10 @@ public:
 		objBufs.push_back(objBuffer);
 	}
 
-	void clearObjBuffers() {
+	void clearObjBuffers(JNIEnv* _jenv) {
 		for (int i=0; i<objBufs.size(); i++) {
 			ObjBuffer *objBuffer = objBufs.at(i);
+			objBuffer->dispose(_jenv);
 			delete objBuffer;
 		}
 		objBufs.clear();
@@ -163,7 +161,6 @@ public:
 	}
 	
 };
-
 
 OkraContextHolder * getOkraContextHolderPointer(JNIEnv *jenv, jobject fromObj) {
 	jclass fromClass = jenv->GetObjectClass(fromObj);
@@ -271,11 +268,11 @@ static void dumpref(jobject ref) {
 }
 
 JNI_JAVA(jlong, OkraContext, createRefHandle)  (JNIEnv *jenv , jclass clazz, jobject obj) {
-	//cout << "getRefHandle, obj is " << obj << ", ptr is " << getPtrFromObjRef(obj) << endl;
+    // cout << "getRefHandle, obj is " << obj << ", ptr is " << getPtrFromObjRef(obj) << endl;
 	jbyte * pbobj = (jbyte *) getPtrFromObjRef(obj) ;
-	//dumpref(obj);
+	// dumpref(obj);
 	jobject ref = jenv->NewGlobalRef(obj);
-	//cout << "getRefHandle, ref is " << ref << ", ptr is " << getPtrFromObjRef(ref) << endl;
+	// cout << "getRefHandle, ref is " << ref << ", ptr is " << getPtrFromObjRef(ref) << endl;
 	return (jlong) ref;
 
 }
@@ -375,8 +372,8 @@ JNI_JAVA(jint, OkraKernel, clearArgs) (JNIEnv *jenv , jobject javaOkraKernel) {
 	OkraKernelHolder * kernelHolder = getOkraKernelHolderPointer(jenv, javaOkraKernel);
 	kernelHolder->arg_count = 0;
 	// clear internal vectors as well
-	kernelHolder->clearArrayBuffers();
-	kernelHolder->clearObjBuffers();
+	kernelHolder->clearArrayBuffers(jenv);
+	kernelHolder->clearObjBuffers(jenv);
 	// make okra call
 	return kernelHolder->realOkraKernel->clearArgs();
 }
@@ -397,16 +394,16 @@ JNI_JAVA(jint, OkraKernel, dispatchKernelWaitCompleteJNI) (JNIEnv *jenv , jobjec
 	OkraKernelHolder * kernelHolder = getOkraKernelHolderPointer(jenv, javaOkraKernel);
 
 	//cout << "before dispatch: array args = " << kernelHolder->arrayBufs.size() 
-	//	 << ", object args = " << kernelHolder->objBufs.size() << endl;
+    //	 << ", object args = " << kernelHolder->objBufs.size() << endl;
 
 	// pin any arrays that are being used as args
-	kernelHolder->pinArrays();
+	kernelHolder->pinArrays(jenv);
 	// and get final addresses of any objects
 	kernelHolder->saveObjAddresses();
 	// make okra call
 	jint status = kernelHolder->realOkraKernel->dispatchKernelWaitComplete();
 	// unpin any pinned arrays we had
-	kernelHolder->unpinArrays();
+	kernelHolder->unpinArrays(jenv);
 
 	//cout << "after dispatch:" << endl;
 

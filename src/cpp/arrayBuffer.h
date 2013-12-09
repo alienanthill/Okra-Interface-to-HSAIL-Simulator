@@ -53,27 +53,34 @@ class ArrayBuffer{
 	  int  elementSize;
       jboolean isCopy;
       jboolean isPinned;
-      JNIEnv *jenv;
 
 	ArrayBuffer(jarray _ary, int _elementSize, int _idx, JNIEnv *_jenv):
-		javaArray(_jenv->NewWeakGlobalRef(_ary)),
+		javaArray(_jenv->NewWeakGlobalRef(_ary)), 
 		length(_jenv->GetArrayLength(_ary)),
 		elementSize(_elementSize),
 		addr(NULL),
 		arg_idx(_idx),
-		jenv(_jenv),
 		isCopy(false),
 		isPinned(false){
    }
 
+	void dispose(JNIEnv *_jenv) {
+		if (javaArray) {
+         //cout << "deleted weak ref " << javaArray <<endl;
+			_jenv->DeleteWeakGlobalRef(javaArray); 
+         javaArray = NULL;
+		}
+	}
+
 	~ArrayBuffer() {
 		if (javaArray) {
-			jenv->DeleteWeakGlobalRef(javaArray);
+         cerr << "failed to dispose of ArrayBuff" << javaArray <<endl;
 		}
 	}
 
 	void unpinAbort(JNIEnv *jenv){
 		if (isPinned) {
+         //cout << "unpinning abort " << addr << " " << javaArray << endl;
 			jenv->ReleasePrimitiveArrayCritical((jarray)javaArray, addr,JNI_ABORT);
 			isPinned = JNI_FALSE;
 		}
@@ -81,6 +88,7 @@ class ArrayBuffer{
 
 	void unpinCommit(JNIEnv *jenv){
 		if (isPinned) {
+         //cout << "unpinning commit " << addr << " " <<javaArray << endl;
 			jenv->ReleasePrimitiveArrayCritical((jarray)javaArray, addr, 0);
 			isPinned = JNI_FALSE;
 		}
@@ -89,6 +97,7 @@ class ArrayBuffer{
 	void pin(JNIEnv *jenv){
 		void *ptr = addr;
 		addr = jenv->GetPrimitiveArrayCritical((jarray)javaArray,&isCopy);
+      //cout << "pinning " << addr << " " <<javaArray << endl;
 		isPinned = JNI_TRUE;
 	}
 

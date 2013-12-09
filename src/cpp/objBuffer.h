@@ -48,19 +48,24 @@ class ObjBuffer{
    public:
       jobject javaObj;        // The java obj that this arg is mapped to 
       int  arg_idx;             // its position in the arg stack
-      JNIEnv *jenv;
 
 	ObjBuffer(jobject _javaObj, int _idx, JNIEnv *_jenv):
 		javaObj(_javaObj),
-		arg_idx(_idx),
-		jenv(_jenv)	{
+		arg_idx(_idx) {
    }
 
-	~ObjBuffer() {
+	void dispose(JNIEnv* _jenv) {
 		if (javaObj) {
-			jenv->DeleteWeakGlobalRef(javaObj);
+         //cout << "deleted weak ref " << javaObj <<endl;
+			_jenv->DeleteWeakGlobalRef(javaObj);
+         javaObj = NULL;
 		}
 	}
+	~ObjBuffer() {
+		if (javaObj) {
+         cerr << "failed to call ObjBuffer.dispose" << javaObj <<endl;
+		}
+   }
 
 };
 
