@@ -51,6 +51,29 @@
 #include <iomanip>
 #include <fstream>
 
+
+// the following logic to determine the pathname of our library and
+// create an hsail_pathname from that is linux specific but for now
+// that's the only target the simulator supports
+#include <dlfcn.h>
+#include <stdio.h>
+using namespace std;
+
+char *hsailasm_pathname;
+
+__attribute__((constructor))
+void on_load(void) {
+	Dl_info dl_info;
+    dladdr((void *)on_load, &dl_info);
+    fprintf(stderr, "module %s loaded\n", dl_info.dli_fname);
+	string s(dl_info.dli_fname);
+	replaceAll(s, "libokra_x86_64.so", "hsailasm");
+	hsailasm_pathname = new char[s.length() + 1];
+	strcpy(hsailasm_pathname, s.c_str());
+}
+
+
+
 // An OkraContext interface to the simulator
 
 class OkraContextSimulatorImpl : public OkraContext {
@@ -261,7 +284,9 @@ public:
 
 		// use the -build hsailasm to translate source
 		// use debug flag
-		int ret = spawnProgram("hsailasm temp_hsa.hsail -g -o temp_hsa.o");
+		char hsailasm_cmdline[sizeof(hsailasm_pathname) + 200];
+		sprintf(hsailasm_cmdline, "%s temp_hsa.hsail -g -o temp_hsa.o", hsailasm_pathname);
+		int ret = spawnProgram(hsailasm_cmdline);
 		if (ret != 0) return NULL;
 		if (isVerbose()) cerr << "hsailasm succeeded\n";
 

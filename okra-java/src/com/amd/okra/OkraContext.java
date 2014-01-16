@@ -43,12 +43,16 @@ package com.amd.okra;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.util.logging.*;
+import java.util.jar.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class OkraContext {
 
@@ -122,9 +126,9 @@ public class OkraContext {
 			}
 			tmpdirPath.toFile().deleteOnExit();
 
-			copyToTmpdir(mappedOkraLibraryName, tmpdirPath, true);
+			copyResourcesToTmpdir(tmpdirPath);
 		} catch (IOException e) {
-            throw new UnsatisfiedLinkError("error creating temporary directory for jar resources");
+            throw new RuntimeException("error creating temporary directory for jar resources");
 		}
 
 		// now load the library from the tmpdirPath
@@ -137,61 +141,69 @@ public class OkraContext {
 		}
 	}
 
-	private static void copyToTmpdir(String fname, Path tmpDirPath, boolean isRequired) {
-		// list files in a jar file resources directory
-		List<String> files = new ArrayList<String>();
-        
-			// Lets stream the jar file 
-			JarInputStream jarInputStream = null;
-			try {
-				jarInputStream = new JarInputStream(new FileInputStream("/home/tom/github-okra-tdeneau/dist/okra.jar"));
-				JarEntry jarEntry;
-				
-				// Iterate the jar entries within that jar. Then make sure it follows the
-				// filter given from the user.
-				do {
-					jarEntry = jarInputStream.getNextJarEntry();
-					if (jarEntry != null) {
-						String fileName = jarEntry.getName();
-						
-						// The filter could be null or has a matching regular expression.
-						if (fileName.startsWith("resources") && !fileName.equals("resources/")) {
-							String root = fileName.substring(fileName.indexOf(File.separator) + 1);
-							files.add(root);
-						}
-					}
-				}
-				while (jarEntry != null);
-				jarInputStream.close();
-				for (String name : files) {
-					System.out.println(name);
-				}
-			}
-			catch (IOException ioe) {
+	private static void copyResourcesToTmpdir(Path tmpDirPath) {
+		try {
+			// list files in a jar file resources directory
+			List<String> files = new ArrayList<String>();
+
+			// Stream the jar file 
+			String jarpath = OkraContext.class.getResource("OkraContext.class").getPath();
+			System.out.println("jar path is " + jarpath);
+			if (! jarpath.startsWith("file:")) {
 				throw new RuntimeException("Unable to get Jar input stream");
 			}
-
-
-		// Prepare buffer for data copying
-        byte[] buffer = new byte[1024];
-        int readBytes;
- 
-        // Open and check input stream
-        InputStream myis = OkraContext.class.getResourceAsStream("/resources/" + fname);
-        if (isRequired && myis == null) {
-            throw new UnsatisfiedLinkError("File " + fname + " was not found inside JAR /resources.");
-        }
- 
-        // Open output stream and copy data between source file in JAR and the temporary file
-		File outfile = new File(tmpDirPath.toString() + File.separator + fname);
-		outfile.deleteOnExit();
-		try (OutputStream os = new FileOutputStream(outfile);
-			 InputStream is = myis) {
-			while ((readBytes = is.read(buffer)) != -1) {
-				os.write(buffer, 0, readBytes);
+			String jarfilename = jarpath.substring(5, jarpath.indexOf("!"));
+			System.out.println("jarfilename is " + jarfilename );
+			JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarfilename));
+			JarEntry jarEntry;
+			
+			// Iterate the jar entries within that jar. Then make sure it follows the
+			// filter given from the user.
+			do {
+				jarEntry = jarInputStream.getNextJarEntry();
+				if (jarEntry != null) {
+					String fileName = jarEntry.getName();
+					
+					// The filter could be null or has a matching regular expression.
+					if (fileName.startsWith("resources") && !fileName.equals("resources/")) {
+						String root = fileName.substring(fileName.indexOf(File.separator) + 1);
+						files.add(root);
+					}
+				}
 			}
-		} catch (IOException e) {
-			throw new UnsatisfiedLinkError("error copying " + fname + " from JAR file");
+			while (jarEntry != null);
+			jarInputStream.close();
+			
+			// now for each file in resources folder copy to tmpdir
+			for (String fname : files) {
+				System.out.println("copying " + fname + "...");
+				// Prepare buffer for data copying
+				byte[] buffer = new byte[1024];
+				int readBytes;
+				
+				// Open and check input stream
+				InputStream myis = OkraContext.class.getResourceAsStream("/resources/" + fname);
+				if (myis == null) {
+					throw new RuntimeException("File " + fname + " was not found inside JAR /resources.");
+				}
+				
+				// Open output stream and copy data between source file in JAR and the temporary file
+				File outfile = new File(tmpDirPath.toString() + File.separator + fname);
+				outfile.deleteOnExit();
+				try (OutputStream os = new FileOutputStream(outfile);
+					 InputStream is = myis) {
+						while ((readBytes = is.read(buffer)) != -1) {
+							os.write(buffer, 0, readBytes);
+						}
+					} catch (IOException e) {
+					throw new RuntimeException("error copying " + fname + " from JAR file");
+				}
+				outfile.setExecutable(true, false);
+				outfile.setReadable(true, false);
+				System.out.println(fname + ", executable = " + outfile.canExecute());
+			}
+		} catch (IOException ioe) {
+			throw new RuntimeException("Unable to get Jar input stream");
 		}
 	}
 
