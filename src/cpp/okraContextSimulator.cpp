@@ -59,21 +59,32 @@
 #include <stdio.h>
 using namespace std;
 
-char *hsailasm_pathname;
+void append_to_env_var(const char *name, const char *addition) {
+  const char *envname = (getenv(name) == NULL ? "" : getenv(name));
+  char newval[strlen(envname) + strlen(addition) + 100];
+  if (strlen(envname)) {
+	sprintf(newval, "%s:%s", envname, addition);
+  } else {
+	sprintf(newval, "%s", addition);
+  }
+  setenv(name, newval, 1);
+  // fprintf(stderr, "new value for %s=%s\n", name, getenv(name));
+}
 
 __attribute__((constructor))
 void on_load(void) {
 	Dl_info dl_info;
     dladdr((void *)on_load, &dl_info);
     // fprintf(stderr, "module %s loaded\n", dl_info.dli_fname);
-	// build hsailasm_pathname for later use
-	string s(dl_info.dli_fname);
-	replaceAll(s, "libokra_x86_64.so", "hsailasm");
-	hsailasm_pathname = new char[s.length() + 1];
-	strcpy(hsailasm_pathname, s.c_str());
-	// set environment variable for our dlinfo name for this process
-	// other clients who want to use dlopen can then use that
-	setenv("_OKRA_SIM_LIB_PATH_", dl_info.dli_fname, 1);
+    // separate pathname into directory part
+	char dldir[strlen(dl_info.dli_fname) + 1];
+	strcpy(dldir, dl_info.dli_fname);
+	char *pend = strrchr(dldir, '/');   
+	*pend = '\0';
+    // fprintf(stderr, "dldir is %s\n", dldir);
+	append_to_env_var("PATH", dldir);
+	append_to_env_var("LD_LIBRARY_PATH", dldir);
+	setenv("_OKRA_SIM_LIB_PATH_", dl_info.dli_fname, 1);  // for dlopen from JVM
 }
 #endif //__GNUC__
 
@@ -288,9 +299,8 @@ public:
 
 		// use the -build hsailasm to translate source
 		// use debug flag
-		char hsailasm_cmdline[sizeof(hsailasm_pathname) + 200];
-		sprintf(hsailasm_cmdline, "%s temp_hsa.hsail -g -o temp_hsa.o", hsailasm_pathname);
-		int ret = spawnProgram(hsailasm_cmdline);
+		// spawnProgram("which hsailasm");
+		int ret = spawnProgram("hsailasm temp_hsa.hsail -g -o temp_hsa.o");
 		if (ret != 0) return NULL;
 		if (isVerbose()) cerr << "hsailasm succeeded\n";
 
@@ -351,7 +361,7 @@ private:
 	}
 
 	int spawnProgram (const char *cmd) {
-		if (true || isVerbose()) cerr << "spawning Program: " << cmd << endl;
+		if (isVerbose()) cerr << "spawning Program: " << cmd << endl;
 		// not sure if we really have to do anything different for windows or linux here
 		// assuming the utility is in the path
 		return system(cmd);

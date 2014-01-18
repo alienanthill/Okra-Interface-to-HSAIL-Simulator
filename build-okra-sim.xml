@@ -137,5 +137,16 @@
 	  -->
    </target>
 
-   <target name="build" depends="clean, getsim, buildsim, javah, gcc" />
+   <target name="jarWithResources" depends="javah">
+      <mkdir dir="${basedir}/jarResourceBase/resources"/>
+	  <copy file="dist/okra.jar" tofile="dist/okra-with-sim-resources.jar"/>
+	  <copy todir="${basedir}/jarResourceBase/resources">
+		<fileset dir="dist/bin">
+		  <include name="*"/>
+		</fileset>
+	  </copy>
+	  <jar jarfile="./dist/okra-with-sim-resources.jar" update="true" basedir="${basedir}/jarResourceBase"/>
+   </target>
+
+   <target name="build" depends="clean, getsim, buildsim, javah, gcc, jarWithResources" />
 </project>
