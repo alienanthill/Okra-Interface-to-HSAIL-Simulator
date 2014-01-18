@@ -51,7 +51,7 @@
 #include <iomanip>
 #include <fstream>
 
-
+#ifdef __GNUC__
 // the following logic to determine the pathname of our library and
 // create an hsail_pathname from that is linux specific but for now
 // that's the only target the simulator supports
@@ -65,13 +65,17 @@ __attribute__((constructor))
 void on_load(void) {
 	Dl_info dl_info;
     dladdr((void *)on_load, &dl_info);
-    fprintf(stderr, "module %s loaded\n", dl_info.dli_fname);
+    // fprintf(stderr, "module %s loaded\n", dl_info.dli_fname);
+	// build hsailasm_pathname for later use
 	string s(dl_info.dli_fname);
 	replaceAll(s, "libokra_x86_64.so", "hsailasm");
 	hsailasm_pathname = new char[s.length() + 1];
 	strcpy(hsailasm_pathname, s.c_str());
+	// set environment variable for our dlinfo name for this process
+	// other clients who want to use dlopen can then use that
+	setenv("_OKRA_SIM_LIB_PATH_", dl_info.dli_fname, 1);
 }
-
+#endif //__GNUC__
 
 
 // An OkraContext interface to the simulator
@@ -347,7 +351,7 @@ private:
 	}
 
 	int spawnProgram (const char *cmd) {
-		if (isVerbose()) cerr << "spawning Program: " << cmd << endl;
+		if (true || isVerbose()) cerr << "spawning Program: " << cmd << endl;
 		// not sure if we really have to do anything different for windows or linux here
 		// assuming the utility is in the path
 		return system(cmd);
