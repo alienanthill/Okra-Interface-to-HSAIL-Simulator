@@ -116,6 +116,7 @@ public class OkraContext {
 		// and if we still haven't loaded it check if it is in the
 		// resources directory of our jar file.  If so, create a
 		// temporary directory and unjar it there.
+		String resourcesOkraDir = "resources/okra/";
 		Path tmpdirPath;
 		try {
 			tmpdirPath = Files.createTempDirectory("okrasim.dir_");
@@ -126,7 +127,7 @@ public class OkraContext {
 			}
 			tmpdirPath.toFile().deleteOnExit();
 
-			copyResourcesToTmpdir(getResourcesList(), tmpdirPath);
+			copyResourcesToTmpdir(getResourcesList(resourcesOkraDir), resourcesOkraDir, tmpdirPath);
 	
 		} catch (IOException e) {
             throw new RuntimeException("error creating temporary directory for jar resources");
@@ -143,7 +144,7 @@ public class OkraContext {
 	}
 
 
-	private static List<String> getResourcesList() {
+	private static List<String> getResourcesList(String resourcesOkraDir) {
 		try {
 			// list files in a jar file resources directory
 			List<String> files = new ArrayList<String>();
@@ -159,16 +160,15 @@ public class OkraContext {
 			JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarfilename));
 			JarEntry jarEntry;
 			
-			// Iterate the jar entries within that jar. Then make sure it follows the
-			// filter given from the user.
+			// Iterate the jar entries within that jar, looking for ones in resources/okra
 			do {
 				jarEntry = jarInputStream.getNextJarEntry();
 				if (jarEntry != null) {
 					String fileName = jarEntry.getName();
 					
-					// The filter could be null or has a matching regular expression.
-					if (fileName.startsWith("resources") && !fileName.equals("resources/")) {
-						String root = fileName.substring(fileName.indexOf(File.separator) + 1);
+					// check against our filter
+					if (fileName.startsWith(resourcesOkraDir) && !fileName.equals(resourcesOkraDir)) {
+					    String root = fileName.substring(resourcesOkraDir.length());
 						files.add(root);
 					}
 				}
@@ -181,7 +181,7 @@ public class OkraContext {
 		}
 	}
 
-	private static void copyResourcesToTmpdir(List<String> fnames, Path tmpDirPath) {
+  private static void copyResourcesToTmpdir(List<String> fnames, String resourcesOkraDir, Path tmpDirPath) {
 		try {
 			// now for each file in resources folder copy to tmpdir
 			for (String fname : fnames) {
@@ -191,9 +191,9 @@ public class OkraContext {
 				int readBytes;
 				
 				// Open and check input stream
-				InputStream myis = OkraContext.class.getResourceAsStream("/resources/" + fname);
+				InputStream myis = OkraContext.class.getResourceAsStream("/" + resourcesOkraDir + fname);
 				if (myis == null) {
-					throw new RuntimeException("File " + fname + " was not found inside jar /resources.");
+					throw new RuntimeException("File " + fname + " was not found inside jar:" + resourcesOkraDir);
 				}
 				
 				// Open output stream and copy data between source file in jar and the temporary file

@@ -138,9 +138,9 @@
    </target>
 
    <target name="jarWithResources" depends="javah">
-      <mkdir dir="${basedir}/jarResourceBase/resources"/>
+      <mkdir dir="${basedir}/jarResourceBase/resources/okra"/>
 	  <copy file="dist/okra.jar" tofile="dist/okra-with-sim-resources.jar"/>
-	  <copy todir="${basedir}/jarResourceBase/resources">
+	  <copy todir="${basedir}/jarResourceBase/resources/okra">
 		<fileset dir="dist/bin">
 		  <include name="*"/>
 		</fileset>
