@@ -370,6 +370,7 @@
     <delete dir="${basedir}/classes" />
     <delete dir="${basedir}/dist" />
     <delete dir="${basedir}/junit" />
+    <delete dir="${basedir}/jarResourceBase" />
       <delete quiet="true">
          <fileset dir="${basedir}" includes="*.obj,*pdb"/>
       </delete>

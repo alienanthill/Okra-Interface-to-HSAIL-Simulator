@@ -51,6 +51,44 @@
 #include <iomanip>
 #include <fstream>
 
+#ifdef __GNUC__
+// the following logic to determine the pathname of our library and
+// create an hsail_pathname from that is linux specific but for now
+// that's the only target the simulator supports
+#include <dlfcn.h>
+#include <stdio.h>
+using namespace std;
+
+void append_to_env_var(const char *name, const char *addition) {
+  const char *envname = (getenv(name) == NULL ? "" : getenv(name));
+  char newval[strlen(envname) + strlen(addition) + 100];
+  if (strlen(envname)) {
+	sprintf(newval, "%s:%s", envname, addition);
+  } else {
+	sprintf(newval, "%s", addition);
+  }
+  setenv(name, newval, 1);
+  // fprintf(stderr, "new value for %s=%s\n", name, getenv(name));
+}
+
+__attribute__((constructor))
+void on_load(void) {
+	Dl_info dl_info;
+    dladdr((void *)on_load, &dl_info);
+    // fprintf(stderr, "module %s loaded\n", dl_info.dli_fname);
+    // separate pathname into directory part
+	char dldir[strlen(dl_info.dli_fname) + 1];
+	strcpy(dldir, dl_info.dli_fname);
+	char *pend = strrchr(dldir, '/');   
+	*pend = '\0';
+    // fprintf(stderr, "dldir is %s\n", dldir);
+	append_to_env_var("PATH", dldir);
+	append_to_env_var("LD_LIBRARY_PATH", dldir);
+	setenv("_OKRA_SIM_LIB_PATH_", dl_info.dli_fname, 1);  // for dlopen from JVM
+}
+#endif //__GNUC__
+
+
 // An OkraContext interface to the simulator
 
 class OkraContextSimulatorImpl : public OkraContext {
@@ -261,6 +299,7 @@ public:
 
 		// use the -build hsailasm to translate source
 		// use debug flag
+		// spawnProgram("which hsailasm");
 		int ret = spawnProgram("hsailasm temp_hsa.hsail -g -o temp_hsa.o");
 		if (ret != 0) return NULL;
 		if (isVerbose()) cerr << "hsailasm succeeded\n";
