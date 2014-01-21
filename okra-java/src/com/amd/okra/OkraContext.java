@@ -187,7 +187,7 @@ public class OkraContext {
 			for (String fname : fnames) {
 				System.out.println("copying " + fname + " to tmpdir...");
 				// Prepare buffer for data copying
-				byte[] buffer = new byte[1024];
+				byte[] buffer = new byte[32768];
 				int readBytes;
 				
 				// Open and check input stream
