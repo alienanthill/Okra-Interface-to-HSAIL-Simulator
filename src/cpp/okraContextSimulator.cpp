@@ -248,10 +248,14 @@ private:
 	hsacommon::vector<hsa::Device *> devices;
 	hsa::Queue *hsaQueue;
 	int maxSimThreads;
+	bool saveHsailSource;
 
 	// constructor
 	OkraContextSimulatorImpl() {
 		setVerbose(false);   // can be set true by higher levels later
+		char * saveHsailSourceEnvVar = getenv("OKRA_SAVEHSAILSOURCE");
+		saveHsailSource =  (saveHsailSourceEnvVar == NULL ? false : strcmp(saveHsailSourceEnvVar, "1")==0);
+
 		hsaRT = hsa::getRuntime();
 		if(!hsaRT) {
 			cerr<<"Fatal: Cannot get HSA Runtime"<<endl;
@@ -309,6 +313,11 @@ public:
 		if (brigBuffer == NULL) {
 			printf("cannot read from the temp_hsa.o file\n"); 
 			return NULL;
+		}
+		// delete temporary files
+		remove("temp_hsa.o");
+		if (!saveHsailSource) {
+			remove("temp_hsa.hsail");
 		}
 
 		return createKernelCommon(brigBuffer, brigSize, entryName);
