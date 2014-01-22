@@ -146,6 +146,8 @@
 		</fileset>
 	  </copy>
 	  <jar jarfile="./dist/okra-with-sim-resources.jar" update="true" basedir="${basedir}/jarResourceBase"/>
+	  <!-- also add the sources to the jar file for debugging help -->
+	  <jar jarfile="./dist/okra-with-sim-resources.jar" update="true"  basedir="${basedir}/okra-java" includes="src/**"/>
    </target>
 
    <target name="build" depends="clean, getsim, buildsim, javah, gcc, jarWithResources" />
