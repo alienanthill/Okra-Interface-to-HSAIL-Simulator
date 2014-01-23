@@ -60,24 +60,29 @@ public class OkraContext {
     /***
      * enum OkraStatus { OKRA_OK, OKRA_OTHER_ERROR };
      ***/
+
+    public interface LibraryLocator {
+       String getPath();
+    }
+
     static {
         loadOkraNativeLibrary();
     } // end static
 
-	static boolean isNativeLibraryLoaded;
+    static boolean isNativeLibraryLoaded;
     private static String mappedOkraLibraryName;
     public static String getMappedOkraLibraryName() {
-	    return mappedOkraLibraryName;
+        return mappedOkraLibraryName;
     }
     public static void setIsNativeLibraryLoaded( boolean b) {
-	    isNativeLibraryLoaded = b;
+        isNativeLibraryLoaded = b;
     }
     static void loadOkraNativeLibrary() {
-		if (isNativeLibraryLoaded) return;
+        if (isNativeLibraryLoaded) return;
         String arch = System.getProperty("os.arch");
         String okraLibraryName = null;
         String okraLibraryRoot = "okra";
-		
+        
         if (arch.equals("amd64") || arch.equals("x86_64")) {
             okraLibraryName = okraLibraryRoot + "_x86_64";
         } else if (arch.equals("x86") || arch.equals("i386")) {
@@ -86,48 +91,58 @@ public class OkraContext {
             logger.fine("Expected property os.arch to contain amd64, x86_64, x86 or i386 but instead found " + arch + " as a result we don't know which okra to attempt to load.");
         }
 
-		mappedOkraLibraryName = System.mapLibraryName(okraLibraryName);
-		try {
-			if (okraLibraryName != null) {
-				// since the library directory (okra/dist/bin) also needs to be part of the PATH env variable, check that
-				String pathStr = System.getenv("PATH");
-				String[] paths = pathStr.split(File.pathSeparator);
-				for (String path : paths) {
-					String okraLibraryFullName = path + File.separator + mappedOkraLibraryName;
-					// System.out.println("testing for okra library at " + okraLibraryFullName);
-					if (new File(okraLibraryFullName).isFile()) {
-						System.load(okraLibraryFullName);
-						// System.out.println("loaded okra library from " + okraLibraryFullName);
-						isNativeLibraryLoaded = true;
-						return;
-					}
-				}
-			}
-		} catch (UnsatisfiedLinkError e) {
-			isNativeLibraryLoaded = false;
-		}
+        mappedOkraLibraryName = System.mapLibraryName(okraLibraryName);
+        try {
+            if (okraLibraryName != null) {
+                // since the library directory (okra/dist/bin) also needs to be part of the PATH env variable, check that
+                String pathStr = System.getenv("PATH");
+                String[] paths = pathStr.split(File.pathSeparator);
+                for (String path : paths) {
+                    String okraLibraryFullName = path + File.separator + mappedOkraLibraryName;
+                    // System.out.println("testing for okra library at " + okraLibraryFullName);
+                    if (new File(okraLibraryFullName).isFile()) {
+                        System.load(okraLibraryFullName);
+                        // System.out.println("loaded okra library from " + okraLibraryFullName);
+                        isNativeLibraryLoaded = true;
+                        return;
+                    }
+                }
+            }
+        } catch (UnsatisfiedLinkError e) {
+            isNativeLibraryLoaded = false;
+        }
 
-		// if we get this far we didn't find it on the path, try
-		// whatever boot.library.path was set up using loadLibrary
-		// without an absolute pathname
-		try {
-			System.loadLibrary(okraLibraryName);
-			// System.out.println("loaded okra library using System.loadLibrary()");
-			isNativeLibraryLoaded = true;
-			return;
-		} catch (UnsatisfiedLinkError e) {
-			isNativeLibraryLoaded = false;
-		}
+        // if we get this far we didn't find it on the path, try
+        // whatever boot.library.path was set up using loadLibrary
+        // without an absolute pathname
+        try {
+            System.loadLibrary(okraLibraryName);
+            // System.out.println("loaded okra library using System.loadLibrary()");
+            isNativeLibraryLoaded = true;
+            return;
+        } catch (UnsatisfiedLinkError e) {
+            isNativeLibraryLoaded = false;
+        }
 
-		// and if we still haven't loaded it check if it is in the
-		// resources directory of a jar file.  If so, create a
-		// temporary directory and unjar it there.
-		try {
-		  Class.forName("com.amd.okra.OkraSimLoader", true, ClassLoader.getSystemClassLoader());
-		} catch (ClassNotFoundException e) {
-		  throw new RuntimeException(e.toString());
-		}
-	}
+        // and if we still haven't loaded it use the special
+        // OkraResourceExtractor to unjar it from the resources
+        // directory of its jar file into a temporary directory and
+        // tell us where it put it.
+        try {
+            // note that OkraResourceExtractor is always loaded by the SystemClassLoader, not the bootpath loader
+		    // whereas OkraContext might be on the bootclasspath, hence the Class.forName usage
+            Class<?> c = Class.forName("com.amd.okra.OkraResourceExtractor", true, ClassLoader.getSystemClassLoader());
+            String okraLibraryFullName = ((LibraryLocator) c.newInstance()).getPath();
+            System.load(okraLibraryFullName);
+            isNativeLibraryLoaded = true;
+            return;
+        } catch (InstantiationException | IllegalAccessException |  UnsatisfiedLinkError | ClassNotFoundException e) {
+            throw new RuntimeException("unable to load "  + mappedOkraLibraryName + ", " + e.toString());
+        } catch (Exception e) {
+            // we have run out of ways to try to find the library
+            throw new RuntimeException("Unexpected Exception, unable to load "  + mappedOkraLibraryName + ", " + e.toString());
+        }
+    }
 
 
     public boolean isValid() {

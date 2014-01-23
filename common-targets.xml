@@ -2,7 +2,7 @@
    <target name="init">
 
 	 <!-- special class not included in the default jar file -->
-	 <property name="okra.simloader.class" value="com/amd/okra/OkraSimLoader.class"/>
+	 <property name="okra.resource.extractor.class" value="com/amd/okra/OkraResourceExtractor.class"/>
 
       <condition property="target.os" value="windows">
         <os family="windows" />
@@ -390,7 +390,7 @@
    		     <compilerarg value="-Xlint"/>
    			 <compilerarg value="-Xlint:-path"/>
        </javac>
-       <jar jarfile="./dist/okra.jar" basedir="./classes" excludes="${okra.simloader.class}"/>
+       <jar jarfile="./dist/okra.jar" basedir="./classes" excludes="${okra.resource.extractor.class}"/>
    	</target>
 
     <available property="junit.installed" file="${junit.home}/${junit.jar.name}"/>

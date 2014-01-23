@@ -153,7 +153,7 @@
 		 <include name="*"/>
 	   </fileset>
 	 </copy>
-	 <jar jarfile="${okra.with.sim.jar}" basedir="./classes" includes="${okra.simloader.class}"/>
+	 <jar jarfile="${okra.with.sim.jar}" basedir="./classes" includes="${okra.resource.extractor.class}"/>
 	 <jar jarfile="${okra.with.sim.jar}" update="true" basedir="${okra.resource.base.dir}"/>
    </target>
 
