@@ -132,16 +132,20 @@ public class OkraContext {
             // note that OkraResourceExtractor is always loaded by the SystemClassLoader, not the bootpath loader
 		    // whereas OkraContext might be on the bootclasspath, hence the Class.forName usage
             Class<?> c = Class.forName("com.amd.okra.OkraResourceExtractor", true, ClassLoader.getSystemClassLoader());
-            String okraLibraryFullName = ((LibraryLocator) c.newInstance()).getPath();
-            System.load(okraLibraryFullName);
+            String okraLibraryNameExtracted = ((LibraryLocator) c.newInstance()).getPath();
+			if (okraLibraryNameExtracted == null) {
+			    throw new UnsatisfiedLinkError("no resource found for "  + mappedOkraLibraryName);
+			}
+            System.load(okraLibraryNameExtracted);
             isNativeLibraryLoaded = true;
             return;
         } catch (InstantiationException | IllegalAccessException |  UnsatisfiedLinkError | ClassNotFoundException e) {
-            throw new RuntimeException("unable to load "  + mappedOkraLibraryName + ", " + e.toString());
+            throw new UnsatisfiedLinkError("unable to load "  + mappedOkraLibraryName + ", " + e.toString());
         } catch (Exception e) {
             // we have run out of ways to try to find the library
-            throw new RuntimeException("Unexpected Exception, unable to load "  + mappedOkraLibraryName + ", " + e.toString());
+            throw new UnsatisfiedLinkError("unable to load "  + mappedOkraLibraryName + ", " + e.toString());
         }
+
     }
 
 

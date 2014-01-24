@@ -66,8 +66,8 @@ public class OkraResourceExtractor implements OkraContext.LibraryLocator {
   }
 
   static {
-        String mappedOkraLibraryName = OkraContext.getMappedOkraLibraryName();
-        String resourcesOkraDir = "resources/okra/";
+	String mappedOkraLibraryName = OkraContext.getMappedOkraLibraryName();
+	String resourcesOkraDir = "resources/okra/" + System.getProperty("os.name") + "/";
         Path tmpdirPath;
         try {
             tmpdirPath = Files.createTempDirectory("okraresource.dir_");
@@ -88,7 +88,8 @@ public class OkraResourceExtractor implements OkraContext.LibraryLocator {
 
         // now set the full path for the newly created library
         // which will get picked up and loaded by OkraContext
-        okraLibraryFullName = tmpdirPath + File.separator + mappedOkraLibraryName;
+        String fullName = tmpdirPath + File.separator + mappedOkraLibraryName;
+		okraLibraryFullName = (new File(fullName).exists() ? fullName : null);
     }
 
 
