@@ -1,4 +1,12 @@
 <project name="okra.common.targets" basedir=".">
+  <!-- bump this to get new okra version -->
+  <property name="okra.version" value="1.5"/>
+  <property name="okra.jar" value="${basedir}/dist/okra.jar"/>
+  
+  <!-- special class not included in the default jar file -->
+  <property name="okra.resource.extractor.class" value="com/amd/okra/OkraResourceExtractor.class"/>
+  <property name="okra.resource.extractor.java" value="com/amd/okra/OkraResourceExtractor.java"/>
+
    <target name="init">
 
       <condition property="target.os" value="windows">
@@ -387,7 +395,7 @@
    		     <compilerarg value="-Xlint"/>
    			 <compilerarg value="-Xlint:-path"/>
        </javac>
-       <jar jarfile="./dist/okra.jar" basedir="./classes"/>
+       <jar jarfile="${okra.jar}" basedir="./classes" excludes="${okra.resource.extractor.class}"/>
    	</target>
 
     <available property="junit.installed" file="${junit.home}/${junit.jar.name}"/>
@@ -441,7 +449,7 @@
 	
    <target name="javah" depends="javac">
       <mkdir dir="include" />
-      <javah classpath="./dist/okra.jar" destdir="include" force="true">
+      <javah classpath="${okra.jar}" destdir="include" force="true">
          <class name="com.amd.okra.OkraContext" />
          <class name="com.amd.okra.OkraKernel" />
          <class name="com.amd.okra.OkraUtil" />

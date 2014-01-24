@@ -137,16 +137,31 @@
 	  -->
    </target>
 
-   <target name="jarWithResources" depends="javah">
-      <mkdir dir="${basedir}/jarResourceBase/resources/okra"/>
-	  <copy file="dist/okra.jar" tofile="dist/okra-with-sim-resources.jar"/>
-	  <copy todir="${basedir}/jarResourceBase/resources/okra">
-		<fileset dir="dist/bin">
-		  <include name="*"/>
-		</fileset>
-	  </copy>
-	  <jar jarfile="./dist/okra-with-sim-resources.jar" update="true" basedir="${basedir}/jarResourceBase"/>
+
+   <property name="okra.versioned.jar" value="${basedir}/dist/okra-${okra.version}.jar"/>
+   <property name="okra.src.jar" value="${basedir}/dist/okra-${okra.version}-src.jar"/>
+   <property name="okra.with.sim.jar" value="${basedir}/dist/okra-${okra.version}-with-sim.jar"/>
+   <property name="okra.with.sim.src.jar" value="${basedir}/dist/okra-${okra.version}-with-sim-src.jar"/>
+   <property name="okra.resource.base.dir" value="${basedir}/jarResourceBase"/>
+   <property name="okra.resource.dir" value="${okra.resource.base.dir}/resources/okra/Linux"/>
+
+   <target name="otherjars" depends="javah">
+	 <!-- versioned okra.jar -->
+	 <copy file="${okra.jar}" tofile="${okra.versioned.jar}"/>
+	 <!-- normal sources -->
+	 <jar jarfile="${okra.src.jar}" basedir="${basedir}/okra-java/src"  excludes="${okra.resource.extractor.java}"/>
+	 <!-- resourceextractor sources -->
+	 <jar jarfile="${okra.with.sim.src.jar}" basedir="${basedir}/okra-java/src"  includes="${okra.resource.extractor.java}"/>
+	 <!-- jar with resources -->
+	 <mkdir dir="${okra.resource.dir}"/>
+	 <copy todir="${okra.resource.dir}">
+	   <fileset dir="dist/bin">
+		 <include name="*"/>
+	   </fileset>
+	 </copy>
+	 <jar jarfile="${okra.with.sim.jar}" basedir="./classes" includes="${okra.resource.extractor.class}"/>
+	 <jar jarfile="${okra.with.sim.jar}" update="true" basedir="${okra.resource.base.dir}"/>
    </target>
 
-   <target name="build" depends="clean, getsim, buildsim, javah, gcc, jarWithResources" />
+   <target name="build" depends="clean, getsim, buildsim, javah, gcc, otherjars" />
 </project>
