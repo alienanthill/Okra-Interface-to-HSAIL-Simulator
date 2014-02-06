@@ -56,7 +56,6 @@ import java.util.List;
 
 public class OkraContext {
 
-    private static final Logger logger = Logger.getLogger("okracontext");
     /***
      * enum OkraStatus { OKRA_OK, OKRA_OTHER_ERROR };
      ***/
@@ -88,7 +87,7 @@ public class OkraContext {
         } else if (arch.equals("x86") || arch.equals("i386")) {
             okraLibraryName = okraLibraryRoot + "_x86";
         } else {
-            logger.fine("Expected property os.arch to contain amd64, x86_64, x86 or i386 but instead found " + arch + " as a result we don't know which okra to attempt to load.");
+			throw new UnsatisfiedLinkError("Expected property os.arch to contain amd64, x86_64, x86 or i386 but instead found " + arch + " as a result we don't know which okra to attempt to load.");
         }
 
         mappedOkraLibraryName = System.mapLibraryName(okraLibraryName);
