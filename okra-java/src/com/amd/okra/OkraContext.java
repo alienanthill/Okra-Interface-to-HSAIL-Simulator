@@ -183,6 +183,11 @@ public class OkraContext {
 
     static native long createRefHandle(Object obj);
 
+	public static native int setCoherence(boolean isCoherent);
+
+	public static native boolean getCoherence();
+
+
     // for testing only
     public static native void useRefHandle(long handle);
 

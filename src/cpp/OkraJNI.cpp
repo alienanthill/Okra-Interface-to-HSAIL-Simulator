@@ -277,6 +277,14 @@ JNI_JAVA(jlong, OkraContext, createRefHandle)  (JNIEnv *jenv , jclass clazz, job
 
 }
 
+JNI_JAVA(jint, OkraContext, setCoherence)  (JNIEnv *jenv , jclass clazz, jboolean isCoherent) {
+	return OkraContext::setCoherence(isCoherent);
+}
+
+JNI_JAVA(jboolean, OkraContext, getCoherence)  (JNIEnv *jenv , jclass clazz) {
+	return OkraContext::getCoherence();
+}
+
 JNI_JAVA(void, OkraContext, useRefHandle)  (JNIEnv *jenv , jclass clazz, jlong handle) {
 	jobject ref = (jobject) handle;
 	//cout << "useRefHandle, ref is " << ref << ", ptr is " << getPtrFromObjRef(ref) << endl;

@@ -1,6 +1,6 @@
 <project name="okra.common.targets" basedir=".">
   <!-- bump this to get new okra version -->
-  <property name="okra.version" value="1.7"/>
+  <property name="okra.version" value="1.8"/>
   <property name="okra.jar" value="${basedir}/dist/okra.jar"/>
   
   <!-- special class not included in the default jar file -->

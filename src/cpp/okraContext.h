@@ -91,6 +91,9 @@ public:
 
 	static bool isSimulator();
 
+	static OkraStatus setCoherence(bool isCoherent);
+	static bool getCoherence();
+
 private:
 	bool verbose;
 };
