@@ -415,6 +415,15 @@ bool OkraContext::isSimulator() {
 	return true;
 }
 
+// simulator only supports coherent model
+OkraContext::OkraStatus  OkraContext::setCoherence(bool isCoherent) {
+	return OKRA_OK; 
+}
+
+bool  OkraContext::getCoherence() {
+	return true; 
+}
+
 // Create an instance thru the OkraContext interface
 // DLLExport
 DLLExport
