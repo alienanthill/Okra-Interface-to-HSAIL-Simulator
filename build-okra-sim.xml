@@ -119,8 +119,7 @@
       </exec>
 	  <copy todir="dist/include">
 		<fileset dir="src/cpp">
-		  <include name="**/okra*.h"/>
-		  <include name="**/common.h"/>
+		  <include name="**/okra.h"/>
 		</fileset>
 	  </copy>
 	  <!-- copy executables preserving x bit (too bad there is no ant task that preserves x bits) -->

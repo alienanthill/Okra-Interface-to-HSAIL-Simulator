@@ -129,9 +129,7 @@ public:
 				if (!arrayBuffer->isPinned) {
 					arrayBuffer->pin(_jenv);
 					// change the appropriate pointer argument in the arg stack
-					realOkraKernel->setPointerArg(arrayBuffer->arg_idx, arrayBuffer->addr);
-					// note: must also call registerArrayMemory (until we can make this call go away)
-					okraContextHolder->realContext->registerArrayMemory(arrayBuffer->addr, arrayBuffer->length * arrayBuffer->elementSize + 32);
+					realOkraKernel->setPointerArg(arrayBuffer->arg_idx, arrayBuffer->addr);					
 				}
 			}
 		}
@@ -195,7 +193,8 @@ jint pushArrayArgInternal(JNIEnv *jenv , jobject javaOkraKernel, jarray ary, jin
 JNI_JAVA(jlong, OkraContext, createOkraContextJNI) (JNIEnv *jenv, jclass clazz, jintArray dummyArray) {
 	// if we really can create a context, return a handle to an internal ContextHOlder
 	// otherwise return a null handle
-	OkraContext *realOkraContext =  OkraContext::Create();
+	OkraContext *realOkraContext = NULL;
+        okra_status_t status = OkraContext::getContext(&realOkraContext);
 	if (realOkraContext == NULL)
 		return (jlong) 0;
 	else
@@ -209,7 +208,8 @@ JNI_JAVA(jlong, OkraContext, createKernelJNI)  (JNIEnv *jenv , jobject javaOkraC
 
 	// if we really can create a kernel, return a handle to an internal kernel holder wrapping the real okra kernel
 	// otherwise return a null handle
-	OkraContext::Kernel *realOkraKernel = okraContextHolder->realContext->createKernel(source_cstr, entryName_cstr);
+	OkraContext::Kernel *realOkraKernel = NULL;
+        okra_status_t status = okraContextHolder->realContext->createKernel(source_cstr, entryName_cstr, &realOkraKernel);
 	if (realOkraKernel == NULL) 
 		return (jlong) 0;
 	else
@@ -219,40 +219,6 @@ JNI_JAVA(jlong, OkraContext, createKernelJNI)  (JNIEnv *jenv , jobject javaOkraC
 JNI_JAVA(jint, OkraContext, dispose)  (JNIEnv *jenv , jobject javaOkraContext) {
 	OkraContextHolder * okraContextHolder = getOkraContextHolderPointer(jenv, javaOkraContext);
 	return okraContextHolder->realContext->dispose();
-}
-
-// if RegisterHeapMemory works, this might go away
-JNI_JAVA(jint, OkraContext, registerObjectMemory)  (JNIEnv *jenv , jobject javaOkraContext, jobject obj, jint len) {
-	OkraContextHolder * okraContextHolder = getOkraContextHolderPointer(jenv, javaOkraContext);
-	void *ptr = getPtrFromObjRef(obj);
-	return okraContextHolder->realContext->registerArrayMemory(ptr, len);
-}
-
-// Register the whole java heap
-JNI_JAVA(jint, OkraContext, registerHeapMemory)  (JNIEnv *jenv , jobject javaOkraContext, jobject obj) {
-	OkraContextHolder * okraContextHolder = getOkraContextHolderPointer(jenv, javaOkraContext);
-	bool show = okraContextHolder->isVerbose();
-#ifdef  _WIN32
-	// hack to make a pointer from the obj refererence
-	// this probably only works with compressed oops off, or with zero-based compressed oops
-	void *ptr = getPtrFromObjRef(obj);
-
-	// this is a no-op on the simulator.
-	// for hardware targets we would find the bounds of the heap and register it
-	size_t size;
-	void *startAddr = vqueryLargest(ptr, &size, show);
-	void *endAddr = ((byte *)startAddr) + size-1;
-	if (okraContextHolder->isVerbose()) {
-		cerr << "from object reference at " << ptr << ", we think heap region is from " << startAddr << " to " << endAddr
-			 << ", size=" << dec << size/(1024*1024) << "m" << endl;
-	}
-
-	// it seems we cannot register the parts that are just reserved vas (unbacked by real memory)
-	// so instead of just trying to register the "live" pieces, we will touch the whole heap
-	// (so it is all committed) and then register that big chunk with hsa
-	commitAndRegisterWholeHeap(startAddr, endAddr);
-#endif
-	return 0;
 }
 
 JNI_JAVA(void, OkraContext, setVerbose)  (JNIEnv *jenv , jobject javaOkraContext, jboolean isVerbose) {
@@ -390,8 +356,8 @@ JNI_JAVA(jint, OkraKernel, clearArgs) (JNIEnv *jenv , jobject javaOkraKernel) {
 JNI_JAVA(jint, OkraKernel, setLaunchAttributes) (JNIEnv *jenv , jobject javaOkraKernel, jint numWorkItems, jint groupSize) {
 	OkraKernelHolder * kernelHolder = getOkraKernelHolderPointer(jenv, javaOkraKernel);
 
-	size_t globalDims[] = {numWorkItems}; 
-	size_t localDims[] = {groupSize};
+	uint32_t globalDims[] = {numWorkItems,1,1}; 
+	uint32_t localDims[] = {groupSize,0,0};
 
 	// make okra call
 	return kernelHolder->realOkraKernel->setLaunchAttributes(1, globalDims, localDims);
@@ -409,7 +375,7 @@ JNI_JAVA(jint, OkraKernel, dispatchKernelWaitCompleteJNI) (JNIEnv *jenv , jobjec
 	// and get final addresses of any objects
 	kernelHolder->saveObjAddresses();
 	// make okra call
-	jint status = kernelHolder->realOkraKernel->dispatchKernelWaitComplete();
+	jint status = kernelHolder->realOkraKernel->dispatchKernelWaitComplete(kernelHolder->okraContextHolder->realContext);
 	// unpin any pinned arrays we had
 	kernelHolder->unpinArrays(jenv);
 
