@@ -149,7 +149,7 @@ okra_status_t OKRA_API okra_execute_kernel(okra_context_t* context, okra_kernel_
     return status;
 }
 
-okra_status_t OKRA_API okra_kernel_dispose(okra_kernel_t* kernel) {
+okra_status_t OKRA_API okra_dispose_kernel(okra_kernel_t* kernel) {
 
     if(!kernel) return OKRA_INVALID_ARGUMENT;
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
@@ -161,7 +161,7 @@ okra_status_t OKRA_API okra_kernel_dispose(okra_kernel_t* kernel) {
 
 }
 
-okra_status_t OKRA_API okra_context_dispose(okra_context_t* context) {
+okra_status_t OKRA_API okra_dispose_context(okra_context_t* context) {
 
     if(!context) return OKRA_INVALID_ARGUMENT;
     OkraContext* ctx = (OkraContext*) context;

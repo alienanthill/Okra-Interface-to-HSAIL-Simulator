@@ -151,8 +151,8 @@ int main(int argc, char *argv[]) {
 	cout << endl << (passed ? "PASSED" : "FAILED") << endl;
 
         //dispose okra resources
-		okra_kernel_dispose(kernel);
-        okra_context_dispose(context);
+		okra_dispose_kernel(kernel);
+        okra_dispose_context(context);
 	
 	return 0;
 }

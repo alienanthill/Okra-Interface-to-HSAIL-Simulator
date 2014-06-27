@@ -145,10 +145,10 @@ okra_status_t OKRA_API okra_clear_args(okra_kernel_t* kernel);
 okra_status_t OKRA_API okra_execute_kernel(okra_context_t* context, okra_kernel_t* kernel, okra_range_t* range);
 
 //cleanup kernel
-okra_status_t OKRA_API okra_kernel_dispose(okra_kernel_t* kernel);
+okra_status_t OKRA_API okra_dispose_kernel(okra_kernel_t* kernel);
 
 //cleanup any resource allocated by okra context
-okra_status_t OKRA_API okra_context_dispose(okra_context_t* context);
+okra_status_t OKRA_API okra_dispose_context(okra_context_t* context);
 
 
 #ifdef __cplusplus
