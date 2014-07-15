@@ -43,92 +43,134 @@
 #include "okraContext.h"
 #include <stdio.h>
 
-// These functions are here to expose an "extern C" interaface into Okra
-// that can be dynamically loaded and looked up using dlopen/dlsym etc.
-// These functions do not use JNI.
-// The workflow is create context, create kernel, clear args (if not first use).
-// push args, execute
-extern "C" DLLExport  void* okra_create_context() {
-    return OkraContext::Create();
+okra_status_t OKRA_API okra_get_context(okra_context_t** context) {
+    okra_status_t status = OkraContext::getContext((OkraContext**)context);
+    return status;
 }
 
-extern "C" DLLExport  void* okra_create_kernel(void* context, const char *source, const char *entryName) {
-    return (void*) ((OkraContext*)context)->createKernel(source, entryName);
+okra_status_t OKRA_API okra_create_kernel(okra_context_t* context, 
+                        const char *hsail_source, const char *entryName, 
+                        okra_kernel_t **kernel) {
+    OkraContext* ctx = (OkraContext*) context;
+    if(!ctx) return OKRA_INVALID_ARGUMENT; 
+    okra_status_t status = ctx->createKernel(hsail_source, entryName, 
+                                                    (OkraContext::Kernel**)kernel);
+    return status;
 }
 
-extern "C" DLLExport  bool okra_push_object(void* kernel, void* object) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_create_kernel_from_binary(okra_context_t *context, 
+                        const char *binary, size_t size, const char *entryName,
+                        okra_kernel_t **kernel) {
+    OkraContext* ctx = (OkraContext*) context;
+    if(!ctx) return OKRA_INVALID_ARGUMENT; 
+    okra_status_t status = ctx->createKernelFromBinary(binary, size, entryName, 
+                                                      (OkraContext::Kernel**)kernel);
+    return status;
+}
+
+okra_status_t OKRA_API okra_push_pointer(okra_kernel_t* kernel, 
+                        void* address) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->pushPointerArg(object);
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->pushPointerArg(address);
+    return status;
 }
 
-extern "C" DLLExport  bool okra_push_boolean(void* kernel, jboolean val) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_push_boolean(okra_kernel_t* kernel, unsigned char val) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->pushBooleanArg(val);
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->pushBooleanArg(val);
+    return status;
 }
 
-extern "C" DLLExport  bool okra_push_byte(void* kernel, jbyte val) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_push_byte(okra_kernel_t* kernel, char val) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->pushByteArg(val);
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->pushByteArg(val);
+    return status;
 }
 
-extern "C" DLLExport  bool okra_push_double(void* kernel, jdouble val) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_push_double(okra_kernel_t* kernel, double val) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->pushDoubleArg(val);
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->pushDoubleArg(val);
+    return status;
 }
 
-extern "C" DLLExport  bool okra_push_float(void* kernel, jfloat val) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_push_float(okra_kernel_t* kernel, float val) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->pushFloatArg(val);
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->pushFloatArg(val);
+    return status;
 }
 
-extern "C" DLLExport  bool okra_push_int(void* kernel, jint val) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_push_int(okra_kernel_t* kernel, int val) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->pushIntArg(val);
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->pushIntArg(val);
+    return status;
 }
 
-extern "C" DLLExport  bool okra_push_long(void* kernel, jlong val) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_push_long(okra_kernel_t* kernel, long val) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->pushLongArg(val);
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
-}
-
-// At this time we only support 1-d kernel ranges
-extern "C" DLLExport  bool okra_execute_with_range(void* kernel, jint numWorkItems) {
-    OkraContext::OkraStatus okraStatus;    
-    OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    size_t globalDims[] = {numWorkItems}; 
-    size_t localDims[] = {0};
-    okraStatus = realKernel->setLaunchAttributes(1, globalDims, localDims);
-    if (okraStatus == OkraContext::OKRA_OK) {
-        okraStatus = realKernel->dispatchKernelWaitComplete();
-    } else {
-        cerr << "setLaunchAttributes error: " << okraStatus << endl;        
-    }
-    return (okraStatus == OkraContext::OKRA_OK);
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->pushLongArg(val);
+    return status;
 }
 
 // Call clearargs between executions of a kernel before setting the new args
-extern "C" DLLExport  bool okra_clearargs(void* kernel) {
-    // kernel* is a Kernel
+okra_status_t OKRA_API okra_clear_args(okra_kernel_t* kernel) {
     OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
-    OkraContext::OkraStatus okraStatus = realKernel->clearArgs();
-    return okraStatus == OkraContext::OKRA_OK ? true : false;
+    if(!realKernel) return OKRA_INVALID_ARGUMENT;
+    okra_status_t status = realKernel->clearArgs();
+    return status;
 }
 
-extern "C" DLLExport  void okra_register_heap(void* base, size_t size) {
-    void* endAddr = (void*)((jlong)base + size);
-    commitAndRegisterWholeHeap(base, endAddr);
+okra_status_t OKRA_API okra_execute_kernel(okra_context_t* context, okra_kernel_t* kernel,  
+                                                                      okra_range_t* range) {
+
+    OkraContext* ctx = (OkraContext*) context;    
+    OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
+    if(!ctx || !realKernel || !range) return OKRA_INVALID_ARGUMENT;
+
+    if(range->dimension < 1 || range->dimension > 3) return OKRA_RANGE_INVALID_DIMENSION;
+    
+    int dimension = range->dimension;
+    uint32_t *globalDims = range->global_size;
+    uint32_t *localDims = range->group_size;
+    
+    okra_status_t status = realKernel->setLaunchAttributes(dimension, globalDims, localDims);
+    
+    if(status != OKRA_SUCCESS)
+       return status;
+    
+    status = realKernel->dispatchKernelWaitComplete(ctx);
+    
+    return status;
 }
+
+okra_status_t OKRA_API okra_dispose_kernel(okra_kernel_t* kernel) {
+
+    if(!kernel) return OKRA_INVALID_ARGUMENT;
+    OkraContext::Kernel* realKernel = (OkraContext::Kernel*) kernel;
+    
+    realKernel->dispose();
+    kernel = NULL;
+   
+    return OKRA_SUCCESS;
+
+}
+
+okra_status_t OKRA_API okra_dispose_context(okra_context_t* context) {
+
+    if(!context) return OKRA_INVALID_ARGUMENT;
+    OkraContext* ctx = (OkraContext*) context;
+    
+    ctx->dispose();
+    context = NULL;
+   
+    return OKRA_SUCCESS;
+
+}
+
+

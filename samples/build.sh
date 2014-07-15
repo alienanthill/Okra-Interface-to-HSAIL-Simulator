@@ -1,7 +1,9 @@
 rm -rf dist
 mkdir -p dist
-./buildone.sh Squares
-./buildone.sh SquaresDbl
-./buildone.sh SquaresDblThis
-./buildone.sh SquaresDblThisFunc
-./buildone.sh ooparray
+./buildone.sh CSquares
+./buildone.sh CSquaresDbl
+./buildone.sh CSquaresDblThis
+./buildone.sh CSquaresDblThisFunc
+./buildone.sh Cooparray
+./buildone.sh CAtomicExch
+

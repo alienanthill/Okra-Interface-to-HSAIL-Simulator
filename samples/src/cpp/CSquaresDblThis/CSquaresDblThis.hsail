@@ -1,0 +1,21 @@
+version 0:95: $full : $large;
+
+kernel &run(
+   kernarg_u64 %_this ){
+
+   ld_kernarg_u64 $d2, [%_this];  // this
+   ld_global_u64 $d1, [$d2 + 0];  // inarray
+   ld_global_u64 $d0, [$d2 + 8];  // outarray
+   ld_global_f64 $d6, [$d2 + 16]; // adjustment
+@block0:
+   workitemabsid_u32 $s2, 0;
+   cvt_s64_s32 $d2, $s2;
+   mad_u64 $d3, $d2, 8, $d1; 
+   ld_global_f64 $d3, [$d3];     // load inarray[gid]
+   mul_f64 $d5, $d3, $d3;        // square inarray[gid]
+   add_f64 $d5, $d5, $d6;        // add in adjustment
+   mad_u64 $d4, $d2, 8, $d0;
+   st_global_f64 $d5, [$d4];
+   ret;
+ };
+

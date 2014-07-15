@@ -174,11 +174,6 @@ public class OkraContext {
     // dispose of an environment including all programs
     public native int dispose();
 
-    // I hope this one will go away
-    public native int registerObjectMemory(Object obj, int len);
-
-    public native int registerHeapMemory(Object obj);
-
     public native void setVerbose(boolean b);
 
     static native long createRefHandle(Object obj);

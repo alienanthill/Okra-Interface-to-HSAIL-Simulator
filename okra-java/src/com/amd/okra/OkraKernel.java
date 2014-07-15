@@ -54,7 +54,7 @@ public class OkraKernel {
         argsVecHandle = 0;
         // register the whole range of heap memory in the device
         // we give it one object and it deduces the range
-        okraContext.registerHeapMemory(new Object());
+        //okraContext.registerHeapMemory(new Object());
     }
 
     private long kernelHandle;

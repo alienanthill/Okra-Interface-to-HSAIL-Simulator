@@ -92,7 +92,7 @@ void on_load(void) {
 // An OkraContext interface to the simulator
 
 class OkraContextSimulatorImpl : public OkraContext {
-	friend OkraContext * OkraContext::Create(); 
+	friend okra_status_t OkraContext::getContext(OkraContext**); 
 	
 private:
 	class KernelImpl : public OkraContext::Kernel {
@@ -110,49 +110,49 @@ private:
 			context = _context;
 		}
 	
-		OkraStatus argsPushBack(hsa::KernelArg *harg) {
+		okra_status_t argsPushBack(hsa::KernelArg *harg) {
 			hsaArgs.push_back(*harg);
-			return OKRA_OK;
+			return OKRA_SUCCESS;
 		}
 		
-		OkraStatus pushFloatArg(jfloat f) {
+		okra_status_t pushFloatArg(jfloat f) {
 			hsa::KernelArg harg;
 			harg.fvalue = f;
 			return argsPushBack(&harg);
 		}
 	
-		OkraStatus pushIntArg(jint i) {
+		okra_status_t pushIntArg(jint i) {
 			hsa::KernelArg harg;
 			harg.s32value = i;
 			return argsPushBack(&harg);
 		}
 	
-		OkraStatus pushBooleanArg(jboolean z) {
+		okra_status_t pushBooleanArg(jboolean z) {
 			hsa::KernelArg harg;
 			harg.u32value = z;
 			return argsPushBack(&harg);
 		}
 	
-		OkraStatus pushByteArg(jbyte b) {
+		okra_status_t pushByteArg(jbyte b) {
 			hsa::KernelArg harg;
 			harg.s32value = b;  //not sure if this is right, verify later
 			return argsPushBack(&harg);
 		}
 	
-		OkraStatus pushLongArg(jlong j) {
+		okra_status_t pushLongArg(jlong j) {
 			hsa::KernelArg harg;
 			harg.s64value = j; 
 			return argsPushBack(&harg);
 		}
 
-		OkraStatus pushDoubleArg(jdouble d) {
+		okra_status_t pushDoubleArg(jdouble d) {
 			hsa::KernelArg harg;
 			harg.dvalue = d; 
 			return argsPushBack(&harg);
 		}
 		
 		
-		OkraStatus pushPointerArg(void *addr) {
+		okra_status_t pushPointerArg(void *addr) {
 			//add the kernelarg for hsa runtime into the vector
 			hsa::KernelArg harg;
 			harg.addr = addr;
@@ -161,32 +161,32 @@ private:
 		}
 
 		// allow a previously pushed arg to be changed
-		OkraStatus setPointerArg(int idx, void *addr) {
+		bool setPointerArg(int idx, void *addr) {
 			hsa::KernelArg harg;
 			harg.addr = addr;
 			if (context->isVerbose()) cerr<<"setPointerArg, addr=" << addr <<endl;
 			hsaArgs.at(idx) = harg;
-			return OKRA_OK;
+			return true;
 		}
 
-		OkraStatus clearArgs() {
+		okra_status_t clearArgs() {
 			hsaArgs.clear();
-			return OKRA_OK;
+			return OKRA_SUCCESS;
 		}
 
-		OkraStatus dispatchKernelWaitComplete() {
+		okra_status_t dispatchKernelWaitComplete(OkraContext* _context) {
 			hsacommon::vector<hsa::Event *> depEvent;
 			hsa::DispatchEvent* hsaDispEvent = context->hsaQueue->dispatch(hsaKernel, 
-																		   hsaLaunchAttr,
-																		   depEvent,
-																		   hsaArgs);
+										   hsaLaunchAttr,
+										   depEvent,
+										   hsaArgs);
 	
 			// in the simulator the returned hsaDispEvent is always null
 			// so we just assume the kernel is finished
 			// how to get a status here??
 			// hsa::Status st = hsaDispEvent->wait();
 			// return (mapHsaErrorToOkra(st)); 
-			return OKRA_OK;
+			return OKRA_SUCCESS;
 		}
 
 		
@@ -195,12 +195,16 @@ private:
 		// globalDims as the number of grid blocks (so NDRangeSize =
 		// grid * group).  So we need to do the conversion here.
 
-		OkraStatus setLaunchAttributes(int dims, size_t *globalDims, size_t *localDims) {
+		okra_status_t setLaunchAttributes(int dims, uint32_t *globalDims, uint32_t *localDims) {
 			for (int k=0; k<dims; k++) {
 				computeLaunchAttr(k, globalDims[k], localDims[k]);
 			}
-			return OKRA_OK;
+			return OKRA_SUCCESS;
 		}
+
+                okra_status_t dispose() {
+                        return OKRA_SUCCESS;
+                }
 
 	private:
 		void computeLaunchAttr(int level, int globalSize, int localSize) {
@@ -240,7 +244,7 @@ private:
 			return (m == 0? n : gcd(m, n%m));
 		}
 
-	};
+	}; //end of kernelImpl
 
 private:
 	hsa::RuntimeApi *hsaRT;
@@ -290,7 +294,7 @@ private:
 	}
 
 public:
-	Kernel * createKernel(const char *hsailBuffer, const char *entryName) {
+	okra_status_t createKernel(const char *hsailBuffer, const char *entryName, Kernel **kernel) {
 		string *fixedHsailStr = fixHsail(hsailBuffer);
 		
 		ofstream ofs("temp_hsa.hsail");
@@ -305,14 +309,18 @@ public:
 		// use debug flag
 		// spawnProgram("which hsailasm");
 		int ret = spawnProgram("hsailasm temp_hsa.hsail -g -o temp_hsa.o");
-		if (ret != 0) return NULL;
+		if (ret != 0) {
+                       *kernel = NULL;
+                       return OKRA_KERNEL_CREATE_FAILED;
+                }
 		if (isVerbose()) cerr << "hsailasm succeeded\n";
 
 		size_t brigSize = 0;
 		char *brigBuffer = readFile("./temp_hsa.o", brigSize);
 		if (brigBuffer == NULL) {
 			printf("cannot read from the temp_hsa.o file\n"); 
-			return NULL;
+                        *kernel = NULL;
+			return OKRA_KERNEL_CREATE_FAILED;
 		}
 		// delete temporary files
 		remove("temp_hsa.o");
@@ -320,33 +328,29 @@ public:
 			remove("temp_hsa.hsail");
 		}
 
-		return createKernelCommon(brigBuffer, brigSize, entryName);
+		*kernel = createKernelCommon(brigBuffer, brigSize, entryName);
+                return OKRA_SUCCESS;
 	}
 
-	Kernel * createKernelFromBinary(const char *brigBuffer, size_t brigSize, const char *entryName) {
+	okra_status_t createKernelFromBinary(const char *brigBuffer, size_t brigSize, const char *entryName, Kernel **kernel) {
 		char *ptr = reinterpret_cast<char*>(malloc(brigSize));
 		if (!ptr) {
-			return NULL;
+                        *kernel = NULL;
+			return OKRA_KERNEL_CREATE_FAILED;
 		}
 
 		memcpy(ptr, brigBuffer, brigSize);
-		return createKernelCommon(ptr, brigSize, entryName);
+		*kernel = createKernelCommon(ptr, brigSize, entryName);
+                return OKRA_SUCCESS;
 	}
 
-	OkraStatus dispose(){
+	okra_status_t dispose(){
 #if 0
 		if (hsaProgram) {
 			hsaRuntime->destroyProgram(hsaProgram);
 		}
 #endif
-		return OKRA_OK;
-	}
-
-	OkraStatus registerArrayMemory(void *addr, jint lengthInBytes) {
-#if 0
-		hsaDevices[0]->registerMemory(addr, lengthInBytes);
-#endif
-		return OKRA_OK;
+		return OKRA_SUCCESS;
 	}
 
 private:
@@ -403,12 +407,7 @@ private:
 		}
 		return s;
 	}
-
-
-
-	static OkraStatus mapHsaErrorToOkra(hsa::Status st) {
-		return (st == hsa::RSTATUS_SUCCESS ? OKRA_OK : OKRA_OTHER_ERROR);
-	}
+	
 }; // end of OkraContextSimulatorImpl
 
 bool OkraContext::isSimulator() {
@@ -416,8 +415,8 @@ bool OkraContext::isSimulator() {
 }
 
 // simulator only supports coherent model
-OkraContext::OkraStatus  OkraContext::setCoherence(bool isCoherent) {
-	return OKRA_OK; 
+okra_status_t  OkraContext::setCoherence(bool isCoherent) {
+	return OKRA_SUCCESS; 
 }
 
 bool  OkraContext::getCoherence() {
@@ -425,21 +424,9 @@ bool  OkraContext::getCoherence() {
 }
 
 // Create an instance thru the OkraContext interface
-// DLLExport
-DLLExport
-OkraContext * OkraContext::Create() {		
-	return new OkraContextSimulatorImpl();
-}
-
-extern "C" DLLExport void  commitAndRegisterWholeHeap(void *startAddr, void *endAddr) {
-    // Nothing to here do for simulator
-    return;
-}
-
-extern "C" DLLExport void * vqueryLargest(void *addr, size_t *pSize, bool show) {
-    // Nothing to here do for simulator
-    cerr<<"Should not call vqueryLargest in Simulator"<<endl;
-    return NULL;
+okra_status_t OkraContext::getContext(OkraContext** context) {		
+	*context = new OkraContextSimulatorImpl();
+        return OKRA_SUCCESS;
 }
 
 
