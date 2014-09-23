@@ -83,10 +83,10 @@
 
    <available file="${simbuild}/src/hsa_runtime/libhsa.a" type="file" property="sim.built" />
    <target name="buildsim"   depends="getsim" >
-	 <exec dir="${simbuild}" executable="cmake">
+	 <exec dir="${simbuild}" executable="cmake" failonerror="true">
 	   <arg line="-DCMAKE_BUILD_TYPE=${sim.build.type} ../" />
 	 </exec>
-	 <exec dir="${simbuild}" executable="make">
+	 <exec dir="${simbuild}" executable="make" failonerror="true">
 	   <arg line="--jobs=4" />
 	 </exec>
    </target>
@@ -98,7 +98,7 @@
       <mkdir dir="${basedir}/dist/bin"/>
       <mkdir dir="${basedir}/dist/tools"/>
       <echo message="linuxcc ${os.arch}" />
-      <exec executable="g++">
+      <exec executable="g++" failonerror="true">
 <!--
          <arg value="-O3" />
 -->
