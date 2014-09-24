@@ -50,6 +50,8 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include "stdio.h"
+#include "pthread.h"
 
 #ifdef __GNUC__
 // the following logic to determine the pathname of our library and
@@ -253,6 +255,7 @@ private:
 	hsa::Queue *hsaQueue;
 	int maxSimThreads;
 	bool saveHsailSource;
+  pthread_mutex_t kernelCreateMutex = PTHREAD_MUTEX_INITIALIZER;
 
 	// constructor
 	OkraContextSimulatorImpl() {
@@ -297,36 +300,46 @@ public:
 	okra_status_t createKernel(const char *hsailBuffer, const char *entryName, Kernel **kernel) {
 		string *fixedHsailStr = fixHsail(hsailBuffer);
 		
-		ofstream ofs("temp_hsa.hsail");
-		if (isVerbose()) cerr << "Fixed Hsail is\n==============\n" << *fixedHsailStr << endl;
-		ofs  << *fixedHsailStr;
-		ofs.close();
-		delete(fixedHsailStr);
+        char tmpHsailFileName[TMP_MAX];
+        char tmpBrigFileName[TMP_MAX];
+        pid_t pid = getpid();
+        sprintf(tmpHsailFileName, "hsail_tmp_%d_XXXXXX", pid);
+        sprintf(tmpBrigFileName, "brig_tmp_%d_XXXXXX", pid);        
+        // The actual tmp file names are returned in the char[]'s
+        int tmpFd = mkstemp(tmpHsailFileName);
+        FILE* tmpFile = fdopen(tmpFd, "w");
+        int brigFile = mkstemp(tmpBrigFileName);
 
-		// writeToFile(fixedHsailBuffer, strlen(fixedHsailBuffer), (char *) "temp_hsa.hsail");
+        if (isVerbose()) cerr << "Fixed Hsail is\n==============\n" << *fixedHsailStr << endl;
+        fprintf(tmpFile, "%s", fixedHsailStr->c_str());
+        fclose(tmpFile);
+        delete(fixedHsailStr);
 
 		// use the -build hsailasm to translate source
 		// use debug flag
-		// spawnProgram("which hsailasm");
-		int ret = spawnProgram("hsailasm temp_hsa.hsail -g -o temp_hsa.o");
-		if (ret != 0) {
+        int bufLen = strlen(tmpHsailFileName) + strlen(tmpBrigFileName) + 128;
+        char* cmdBuf = (char *) malloc(bufLen);
+        sprintf(cmdBuf, "hsailasm %s -g -o %s", tmpHsailFileName, tmpBrigFileName);
+        int ret = spawnProgram(cmdBuf);
+
+        if (ret != 0) {
                        *kernel = NULL;
                        return OKRA_KERNEL_CREATE_FAILED;
                 }
 		if (isVerbose()) cerr << "hsailasm succeeded\n";
 
 		size_t brigSize = 0;
-		char *brigBuffer = readFile("./temp_hsa.o", brigSize);
+		char *brigBuffer = readFile(tmpBrigFileName, brigSize);
 		if (brigBuffer == NULL) {
-			printf("cannot read from the temp_hsa.o file\n"); 
-                        *kernel = NULL;
+			printf("cannot read from the %s\n", tmpBrigFileName);
+			*kernel = NULL;
 			return OKRA_KERNEL_CREATE_FAILED;
 		}
 		// delete temporary files
-		remove("temp_hsa.o");
-		if (!saveHsailSource) {
-			remove("temp_hsa.hsail");
-		}
+    remove(tmpBrigFileName);
+    if (!saveHsailSource) {
+        remove(tmpHsailFileName);
+    }
 
 		*kernel = createKernelCommon(brigBuffer, brigSize, entryName);
                 return OKRA_SUCCESS;
@@ -355,6 +368,8 @@ public:
 
 private:
 	Kernel * createKernelCommon(char *brigBuffer, size_t brigSize, const char *entryName) {
+    // Synchronize calls to hsa
+    pthread_mutex_lock(&kernelCreateMutex);
 		hsa::Program *hsaProgram =	hsaRT->createProgram(brigBuffer, brigSize, &devices);
 		if(!hsaProgram) {
 			cerr<<"HSA create program failed"<<endl;
@@ -368,6 +383,7 @@ private:
 			return NULL;
 		}
 		if (isVerbose()) cerr << "createKernel succeeded\n";
+    pthread_mutex_unlock(&kernelCreateMutex);
 
 		// if we got this far, success
 		return new KernelImpl(hsaKernel, this);
