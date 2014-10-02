@@ -43,7 +43,7 @@
 #include "common.h"
 //for hsa
 #include "hsa.h"
-
+#include "fix_hsail.h"
 #include "okraContext.h"
 #include "fileUtils.h"
 #include <string>
@@ -299,7 +299,7 @@ private:
 public:
 	okra_status_t createKernel(const char *hsailBuffer, const char *entryName, Kernel **kernel) {
 		string *fixedHsailStr = fixHsail(hsailBuffer);
-		
+	ConvertHsail(*fixedHsailStr);		
         char tmpHsailFileName[TMP_MAX];
         char tmpBrigFileName[TMP_MAX];
         pid_t pid = getpid();
