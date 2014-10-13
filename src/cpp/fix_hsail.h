@@ -94,22 +94,15 @@ static void ConvertHsail(std::string& hsail_text){
     regmatch_t match[3];
     const char* version_pattern = "\\bversion\\s([0-9]+)\\s*:\\s*([0-9]+)\\s*:"; 
     if (FindNextPattern(hsail_text.c_str(),version_pattern, match,3) !=  0){
-        std::cout<<"Could not find version"<<std::endl;
+        std::cout<<"Could not find version in hsail text"<<std::endl;
         return;
     }
     std::string major_version = 
             hsail_text.substr((int)match[1].rm_so, (int)match[1].rm_eo - match[1].rm_so);
     std::string minor_version = 
             hsail_text.substr((int)match[2].rm_so, (int)match[2].rm_eo - match[2].rm_so);
-    std::cout<<"Version "<<major_version<<":"<<minor_version<<std::endl;
     if (major_version == "0" && minor_version == "95"){
         return;
-    }
-    std::cout<<"Attempting to convert HSAIL to 0:95"<<std::endl;
-    if (major_version == "1" && minor_version == "0") {
-        std::cout<<"Converting 1.0 HSAIL to 0.95"<<std::endl;
-    } else {
-        std::cout<<"Warning: Only 1.0P HSAIL can be converted"<<std::endl;
     }
 
     const int num_of_instructions = 14;
